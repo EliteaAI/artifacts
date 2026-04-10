@@ -1,6 +1,11 @@
 {
   "name": "Carrier Artifacts RestAPI Plugin",
-  "version": "0.2",
-  "depends_on": ["shared", "secrets"],
-  "init_after": ["projects"]
+  "version": "0.3",
+  "depends_on": [
+    "shared",
+    "secrets"
+  ],
+  "init_after": [
+    "projects"
+  ]
 }
