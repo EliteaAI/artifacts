@@ -117,6 +117,11 @@ class ProjectAPI(api_tools.APIModeHandler):
                                     'expiration_date': expiration_date.isoformat(),
                                     'days_remaining': days,
                                     'warning_threshold': 0,
+                                    'message': (
+                                        f'Bucket [{bucket}]() will start deleting files '
+                                        f'in 24 hours according to its retention policy (files are removed based '
+                                        f"on each file's creation date; the bucket itself will remain)."
+                                    ),
                                 },
                                 'event_type': 'bucket_expiration_warning',
                             }
@@ -179,6 +184,11 @@ class ProjectAPI(api_tools.APIModeHandler):
                                         'expiration_date': expiration_date.isoformat(),
                                         'days_remaining': days,
                                         'warning_threshold': 0,
+                                        'message': (
+                                            f'Bucket [{bucket}]() will start deleting files '
+                                            f'in 24 hours according to its retention policy (files are removed based '
+                                            f"on each file's creation date; the bucket itself will remain)."
+                                        ),
                                     },
                                     'event_type': 'bucket_expiration_warning',
                                 }
