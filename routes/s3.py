@@ -62,12 +62,12 @@ class Route:  # pylint: disable=E1101,R0903
 
     @web.route(
         "/s3/<string:bucket>",
-        methods=["GET", "PUT", "DELETE", "HEAD"],
+        methods=["GET", "PUT", "DELETE", "HEAD", "PATCH"],
         endpoint="s3_bucket_operations",
         strict_slashes=False,
     )
     def s3_bucket_operations(self, bucket: str):
-        """Bucket operations (GET/PUT/DELETE/HEAD /{bucket})"""
+        """Bucket operations (GET/PUT/DELETE/HEAD/PATCH /{bucket})"""
         auth_result = verify_s3_auth(flask.request)
         if auth_result.get('error'):
             return responses.error_response('AccessDenied', auth_result['error'], status_code=403)
@@ -97,6 +97,15 @@ class Route:  # pylint: disable=E1101,R0903
                 return handler.delete_bucket(bucket)
             elif method == 'HEAD':
                 return handler.head_bucket(bucket)
+            elif method == 'PATCH':
+                # Update bucket tags (e.g., is_pinned)
+                data = flask.request.get_json() or {}
+                tags = {}
+                if 'is_pinned' in data:
+                    tags['is_pinned'] = 'true' if data['is_pinned'] else 'false'
+                if tags:
+                    return handler.update_bucket_tags(bucket, tags)
+                return responses.error_response('InvalidRequest', 'No valid fields to update', status_code=400)
             else:
                 # GET without list-type - list objects
                 obj_handler = ObjectHandler(project)

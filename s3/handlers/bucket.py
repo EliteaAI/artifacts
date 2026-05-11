@@ -86,7 +86,19 @@ class BucketHandler:
                     log.debug(f"No lifecycle policy for bucket {bucket_name}: {lifecycle_err}")
                     bucket_info['retention_days'] = None
 
+                # Get is_pinned from bucket tags
+                try:
+                    tags_response = self.mc.get_bucket_tags(bucket_name)
+                    tags = {tag['Key']: tag['Value'] for tag in tags_response.get('TagSet', [])} if tags_response else {}
+                    bucket_info['is_pinned'] = tags.get('is_pinned', 'false') == 'true'
+                except Exception as tag_err:
+                    log.debug(f"Failed to get tags for bucket {bucket_name}: {tag_err}")
+                    bucket_info['is_pinned'] = False
+
                 bucket_list.append(bucket_info)
+
+            # Sort: pinned first, then alphabetically by name (case-insensitive)
+            bucket_list.sort(key=lambda b: (not b.get('is_pinned', False), b['name'].lower()))
 
             return list_buckets_response(
                 buckets=bucket_list,
@@ -207,6 +219,47 @@ class BucketHandler:
 
         except Exception as e:
             log.error("HeadBucket failed: %s", e)
+            return error_response(
+                code='InternalError',
+                message=str(e),
+                resource=f'/{bucket_name}',
+                status_code=500
+            )
+
+    def update_bucket_tags(self, bucket_name: str, new_tags: dict) -> Response:
+        """
+        Update bucket tags (merge with existing).
+
+        Used for updating is_pinned and other metadata.
+        """
+        try:
+            # Check if bucket exists
+            existing_buckets = self.mc.list_bucket()
+            if bucket_name not in existing_buckets:
+                return error_response(
+                    code='NoSuchBucket',
+                    message=f'Bucket {bucket_name} does not exist',
+                    resource=f'/{bucket_name}',
+                    status_code=404
+                )
+
+            # Get existing tags and merge
+            response = self.mc.get_bucket_tags(bucket_name)
+            existing_tags = {
+                tag['Key']: tag['Value']
+                for tag in response.get('TagSet', [])
+            } if response else {}
+            existing_tags.update(new_tags)
+            self.mc.set_bucket_tags(bucket=bucket_name, tags=existing_tags)
+
+            return Response(
+                '{"message": "Updated"}',
+                status=200,
+                mimetype='application/json'
+            )
+
+        except Exception as e:
+            log.error("UpdateBucketTags failed: %s", e)
             return error_response(
                 code='InternalError',
                 message=str(e),
