@@ -178,6 +178,9 @@ def list_buckets_response(buckets: List[Dict], owner_id: str = '',
             retention_days = bucket.get('retention_days')
             if retention_days is not None:
                 bucket_data['retentionDays'] = retention_days
+            is_pinned = bucket.get('is_pinned')
+            if is_pinned is not None:
+                bucket_data['isPinned'] = is_pinned
             data['buckets'].append(bucket_data)
         return _to_json_response(data)
 

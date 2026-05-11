@@ -213,6 +213,36 @@ class ProjectAPI(api_tools.APIModeHandler):
         mc.remove_bucket(request.args["name"])
         return {"message": "Deleted"}, 200
 
+    @auth.decorators.check_api({
+        "permissions": ["configuration.artifacts.artifacts.edit"],
+        "recommended_roles": {
+            "administration": {"admin": True, "viewer": False, "editor": True},
+            "default": {"admin": True, "viewer": False, "editor": True},
+            "developer": {"admin": True, "viewer": False, "editor": True},
+        }})
+    def patch(self, project_id: int):
+        bucket = request.args.get("name")
+        if not bucket:
+            return {"message": "Name of bucket not provided"}, 400
+
+        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        configuration_title = request.args.get('configuration_title')
+        try:
+            mc = MinioClient(project, configuration_title=configuration_title)
+        except AttributeError:
+            return {'error': f'Error accessing s3: {configuration_title}'}, 400
+
+        args = request.json or {}
+        tags = {}
+        if 'is_pinned' in args:
+            tags['is_pinned'] = 'true' if args['is_pinned'] else 'false'
+
+        if not tags:
+            return {"message": "No valid fields to update"}, 400
+
+        _update_bucket_tags(mc, bucket, tags)
+        return {"message": "Updated"}, 200
+
 
 
 class API(api_tools.APIBase):
