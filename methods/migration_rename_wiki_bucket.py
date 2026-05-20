@@ -79,7 +79,8 @@ class Method:
                         project_name, OLD_BUCKET, NEW_BUCKET,
                     )
 
-                    mc.create_bucket(NEW_BUCKET)
+                    if NEW_BUCKET not in buckets:
+                        mc.create_bucket(NEW_BUCKET)
 
                     existing_keys = {f["name"] for f in mc.list_files(NEW_BUCKET)}
                     old_files = mc.list_files(OLD_BUCKET)
