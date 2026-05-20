@@ -85,6 +85,9 @@ class Module(module.ModuleModel):
             this.for_module("admin").module.register_admin_task(
                 "migrate_artifact_buckets_retention", self.migrate_artifact_buckets_retention
             )
+            this.for_module("admin").module.register_admin_task(
+                "migration_rename_wiki_bucket", self.migration_rename_wiki_bucket
+            )
         except Exception as e:
             log.exception("Failed to register admin tasks: %s", e)
 
