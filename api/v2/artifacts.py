@@ -2,7 +2,7 @@ from flask import request
 
 from hurry.filesize import size
 
-from tools import MinioClient, api_tools, auth
+from tools import MinioClient, api_tools, auth, register_openapi
 from pylon.core.tools import log
 
 from ...utils.utils import make_filepath
@@ -25,6 +25,18 @@ def calculate_readable_retention_policy(days: int) -> dict:
 
 
 class ProjectAPI(api_tools.APIModeHandler):
+    @register_openapi(
+        name="List Artifacts",
+        description="List files in a project bucket.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.view"],
         "recommended_roles": {
@@ -55,6 +67,22 @@ class ProjectAPI(api_tools.APIModeHandler):
         except Exception as e:
             return {"error": str(e)}, 400
 
+    @register_openapi(
+        name="Upload Artifact",
+        description="Upload a file to a project bucket (multipart/form-data, field name: 'file').",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+            {"name": "create_if_not_exists", "in": "query", "schema": {"type": "boolean", "default": True},
+             "description": "Create bucket if it does not exist."},
+            {"name": "overwrite", "in": "query", "schema": {"type": "boolean", "default": True},
+             "description": "Overwrite existing file with the same name."},
+        ],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.create"],
         "recommended_roles": {
@@ -104,6 +132,20 @@ class ProjectAPI(api_tools.APIModeHandler):
             log.error(f"Upload failed: {e}")
             return {'error': str(e)}, 500
 
+    @register_openapi(
+        name="Delete Artifacts",
+        description="Delete one or more files from a bucket. If no filenames are provided, the entire bucket is removed.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "fname[]", "in": "query", "schema": {"type": "string"},
+             "description": "Filename(s) to delete. Repeat for multiple files."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.delete"],
         "recommended_roles": {

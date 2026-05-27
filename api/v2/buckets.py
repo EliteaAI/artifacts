@@ -8,7 +8,9 @@ from hurry.filesize import size
 from flask import request
 
 from pylon.core.tools import log
-from tools import MinioClient, api_tools, auth
+from tools import MinioClient, api_tools, auth, register_openapi
+
+from ...models.pd.api_models import BucketCreateRequest, BucketUpdateRequest, BucketPatchRequest
 
 
 def _update_bucket_tags(mc, bucket, new_tags):
@@ -35,6 +37,16 @@ def calculate_retention_days(project, expiration_value, expiration_measure):
 
 
 class ProjectAPI(api_tools.APIModeHandler):
+    @register_openapi(
+        name="List Buckets",
+        description="List all S3 buckets for a project.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])
     def get(self, project_id: int):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
@@ -59,6 +71,17 @@ class ProjectAPI(api_tools.APIModeHandler):
         rows.sort(key=lambda x: x['name'])
         return {"total": len(buckets), "rows": rows}, 200
 
+    @register_openapi(
+        name="Create Bucket",
+        description="Create a new S3 bucket with an optional retention policy.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+        request_body=BucketCreateRequest,
+    )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.create"])
     def post(self, project_id: int):
         args = request.json
@@ -137,6 +160,17 @@ class ProjectAPI(api_tools.APIModeHandler):
         else:
             return {"message": response}, 400
 
+    @register_openapi(
+        name="Update Bucket Retention",
+        description="Update the retention policy of an existing bucket.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+        request_body=BucketUpdateRequest,
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.edit"],
         "recommended_roles": {
@@ -202,6 +236,18 @@ class ProjectAPI(api_tools.APIModeHandler):
         else:
             return {"message": "The data retention limit not specify or provided data is not correct"}, 400
 
+    @register_openapi(
+        name="Delete Bucket",
+        description="Delete a bucket by name.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "name", "in": "query", "schema": {"type": "string"},
+             "description": "Bucket name to delete."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int):
         configuration_title = request.args.get('configuration_title')
@@ -213,6 +259,19 @@ class ProjectAPI(api_tools.APIModeHandler):
         mc.remove_bucket(request.args["name"])
         return {"message": "Deleted"}, 200
 
+    @register_openapi(
+        name="Patch Bucket",
+        description="Update bucket metadata tags (e.g. pin/unpin a bucket).",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "name", "in": "query", "schema": {"type": "string"},
+             "description": "Bucket name to patch."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+        request_body=BucketPatchRequest,
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.edit"],
         "recommended_roles": {

@@ -20,12 +20,28 @@ from datetime import datetime
 from flask import request
 
 from pylon.core.tools import log
-from tools import api_tools, auth
+from tools import api_tools, auth, register_openapi
+
+from ...models.pd.api_models import S3CredentialCreateRequest
+
+_PROJECT_PARAM = {"name": "project_id", "in": "path", "schema": {"type": "string"},
+                  "description": "Project identifier."}
+_ACCESS_KEY_PARAM = {"name": "access_key_id", "in": "path", "schema": {"type": "string"},
+                     "description": "S3 access key ID."}
 
 
 class ProjectAPI(api_tools.APIModeHandler):
     """S3 Credentials API for project scope"""
 
+    @register_openapi(
+        name="List or Get S3 Credentials",
+        description="List all S3 API credentials for a project, or get a specific credential by access key ID.",
+        parameters=[
+            _PROJECT_PARAM,
+            {"name": "access_key_id", "in": "path", "schema": {"type": "string"},
+             "description": "Access key ID (optional — omit to list all credentials)."},
+        ],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.view"],
         "recommended_roles": {
@@ -63,6 +79,12 @@ class ProjectAPI(api_tools.APIModeHandler):
             'rows': credentials
         }, 200
 
+    @register_openapi(
+        name="Create S3 Credential",
+        description="Create new S3 API credentials for a project. The secret_access_key is returned only in this response.",
+        parameters=[_PROJECT_PARAM],
+        request_body=S3CredentialCreateRequest,
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.create"],
         "recommended_roles": {
@@ -120,6 +142,11 @@ class ProjectAPI(api_tools.APIModeHandler):
 
         return credential, 201
 
+    @register_openapi(
+        name="Delete S3 Credential",
+        description="Delete an S3 credential by access key ID.",
+        parameters=[_PROJECT_PARAM, _ACCESS_KEY_PARAM],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.delete"],
         "recommended_roles": {
@@ -149,6 +176,11 @@ class ProjectAPI(api_tools.APIModeHandler):
 
         return {'message': 'Deleted'}, 200
 
+    @register_openapi(
+        name="Rotate S3 Credential",
+        description="Rotate S3 credentials — generates a new secret_access_key. The new secret is returned only in this response.",
+        parameters=[_PROJECT_PARAM, _ACCESS_KEY_PARAM],
+    )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.edit"],
         "recommended_roles": {
