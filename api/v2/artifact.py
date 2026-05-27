@@ -6,10 +6,24 @@ from hurry.filesize import size
 from pylon.core.tools import log
 from botocore.exceptions import ClientError
 
-from tools import MinioClient, api_tools, auth
+from tools import MinioClient, api_tools, auth, register_openapi
 
 
 class ProjectAPI(api_tools.APIModeHandler):
+    @register_openapi(
+        name="Download Artifact",
+        description="Download a file from a project bucket.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "filename", "in": "path", "schema": {"type": "string"},
+             "description": "File path within the bucket."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])
     def get(self, project_id: int, bucket: str, filename: str):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
@@ -28,6 +42,20 @@ class ProjectAPI(api_tools.APIModeHandler):
         except TypeError:  # new flask
             return send_file(BytesIO(file), download_name=filename, as_attachment=False)
 
+    @register_openapi(
+        name="Delete Artifact",
+        description="Delete a specific file from a project bucket.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "filename", "in": "query", "schema": {"type": "string"},
+             "description": "URL-encoded filename to delete."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+    )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int, bucket: str):
         filename: str = request.args.get('filename')
