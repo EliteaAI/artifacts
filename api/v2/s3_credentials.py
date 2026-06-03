@@ -41,6 +41,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "access_key_id", "in": "path", "schema": {"type": "string"},
              "description": "Access key ID (optional — omit to list all credentials)."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.view"],
@@ -84,6 +85,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         description="Create new S3 API credentials for a project. The secret_access_key is returned only in this response.",
         parameters=[_PROJECT_PARAM],
         request_body=S3CredentialCreateRequest,
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.create"],
@@ -146,6 +148,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Delete S3 Credential",
         description="Delete an S3 credential by access key ID.",
         parameters=[_PROJECT_PARAM, _ACCESS_KEY_PARAM],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.delete"],
@@ -180,6 +183,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Rotate S3 Credential",
         description="Rotate S3 credentials — generates a new secret_access_key. The new secret is returned only in this response.",
         parameters=[_PROJECT_PARAM, _ACCESS_KEY_PARAM],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.s3_credentials.edit"],

@@ -46,6 +46,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])
     def get(self, project_id: int):
@@ -81,6 +82,7 @@ class ProjectAPI(api_tools.APIModeHandler):
              "description": "Optional S3 configuration title override."},
         ],
         request_body=BucketCreateRequest,
+        available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.create"])
     def post(self, project_id: int):
@@ -170,6 +172,7 @@ class ProjectAPI(api_tools.APIModeHandler):
              "description": "Optional S3 configuration title override."},
         ],
         request_body=BucketUpdateRequest,
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.edit"],
@@ -247,6 +250,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int):
@@ -271,6 +275,7 @@ class ProjectAPI(api_tools.APIModeHandler):
              "description": "Optional S3 configuration title override."},
         ],
         request_body=BucketPatchRequest,
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.edit"],

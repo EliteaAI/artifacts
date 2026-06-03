@@ -23,6 +23,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])
     def get(self, project_id: int, bucket: str, filename: str):
@@ -55,6 +56,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int, bucket: str):

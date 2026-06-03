@@ -36,6 +36,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.view"],
@@ -82,6 +83,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "overwrite", "in": "query", "schema": {"type": "boolean", "default": True},
              "description": "Overwrite existing file with the same name."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.create"],
@@ -145,6 +147,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
+        available_to_users=True,
     )
     @auth.decorators.check_api({
         "permissions": ["configuration.artifacts.artifacts.delete"],
