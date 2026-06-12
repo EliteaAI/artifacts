@@ -14,7 +14,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Download Artifact",
         description="Download a file from a project bucket.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "bucket", "in": "path", "schema": {"type": "string"},
              "description": "Bucket name."},
@@ -47,11 +47,12 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Delete Artifact",
         description="Delete a specific file from a project bucket.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "bucket", "in": "path", "schema": {"type": "string"},
              "description": "Bucket name."},
             {"name": "filename", "in": "query", "schema": {"type": "string"},
+             "required": True,
              "description": "URL-encoded filename to delete."},
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},

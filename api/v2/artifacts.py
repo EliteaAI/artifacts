@@ -29,7 +29,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="List Artifacts",
         description="List files in a project bucket.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "bucket", "in": "path", "schema": {"type": "string"},
              "description": "Bucket name."},
@@ -72,7 +72,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Upload Artifact",
         description="Upload a file to a project bucket (multipart/form-data, field name: 'file').",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "bucket", "in": "path", "schema": {"type": "string"},
              "description": "Bucket name."},
@@ -83,6 +83,24 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "overwrite", "in": "query", "schema": {"type": "boolean", "default": True},
              "description": "Overwrite existing file with the same name."},
         ],
+        request_body={
+            "required": True,
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "file": {
+                                "type": "string",
+                                "format": "binary",
+                                "description": "File to upload.",
+                            }
+                        },
+                        "required": ["file"],
+                    }
+                }
+            },
+        },
         available_to_users=True,
     )
     @auth.decorators.check_api({
@@ -138,11 +156,12 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Delete Artifacts",
         description="Delete one or more files from a bucket. If no filenames are provided, the entire bucket is removed.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "bucket", "in": "path", "schema": {"type": "string"},
              "description": "Bucket name."},
-            {"name": "fname[]", "in": "query", "schema": {"type": "string"},
+            {"name": "fname[]", "in": "query",
+             "schema": {"type": "array", "items": {"type": "string"}},
              "description": "Filename(s) to delete. Repeat for multiple files."},
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
@@ -178,6 +197,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         # Delete from S3
         if not filenames:
             mc.remove_bucket(bucket)
+            return {"message": "Deleted"}, 200
         else:
             for fname in filenames:
                 mc.remove_file(bucket, fname)
