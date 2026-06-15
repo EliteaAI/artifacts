@@ -55,8 +55,8 @@ class ProjectAPI(api_tools.APIModeHandler):
         """
         List S3 credentials for a project, or get a specific credential.
 
-        GET /api/v1/artifacts/s3_credentials/{project_id}
-        GET /api/v1/artifacts/s3_credentials/{project_id}/{access_key_id}
+        GET /api/v2/artifacts/s3_credentials/{project_id}
+        GET /api/v2/artifacts/s3_credentials/{project_id}/{access_key_id}
         """
         rpc = self.module.context.rpc_manager
 
@@ -99,7 +99,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         """
         Create new S3 credentials.
 
-        POST /api/v1/artifacts/s3_credentials/{project_id}
+        POST /api/v2/artifacts/s3_credentials/{project_id}
 
         Request body:
         {
@@ -162,7 +162,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         """
         Delete S3 credentials.
 
-        DELETE /api/v1/artifacts/s3_credentials/{project_id}/{access_key_id}
+        DELETE /api/v2/artifacts/s3_credentials/{project_id}/{access_key_id}
         """
         if not access_key_id:
             return {'error': 'access_key_id required'}, 400
@@ -197,7 +197,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         """
         Rotate S3 credentials (generate new secret).
 
-        PUT /api/v1/artifacts/s3_credentials/{project_id}/{access_key_id}
+        PUT /api/v2/artifacts/s3_credentials/{project_id}/{access_key_id}
 
         Response includes new secret_access_key.
         """
