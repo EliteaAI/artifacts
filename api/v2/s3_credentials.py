@@ -223,10 +223,10 @@ class ProjectAPI(api_tools.APIModeHandler):
 
 class API(api_tools.APIBase):
     url_params = [
-        '<string:project_id>',
-        '<string:mode>/<string:project_id>',
-        '<string:project_id>/<string:access_key_id>',
-        '<string:mode>/<string:project_id>/<string:access_key_id>',
+        '<int:project_id>',
+        '<string:mode>/<int:project_id>',
+        '<int:project_id>/<string:access_key_id>',
+        '<string:mode>/<int:project_id>/<string:access_key_id>',
     ]
 
     mode_handlers = {
