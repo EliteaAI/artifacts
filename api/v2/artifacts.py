@@ -207,8 +207,8 @@ class ProjectAPI(api_tools.APIModeHandler):
 
 class API(api_tools.APIBase):
     url_params = [
-        '<string:project_id>/<string:bucket>',
-        '<string:mode>/<string:project_id>/<string:bucket>',
+        '<int:project_id>/<string:bucket>',
+        '<string:mode>/<int:project_id>/<string:bucket>',
     ]
 
     mode_handlers = {
