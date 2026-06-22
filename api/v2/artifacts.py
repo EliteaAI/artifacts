@@ -196,7 +196,11 @@ class ProjectAPI(api_tools.APIModeHandler):
 
         # Delete from S3
         if not filenames:
-            mc.remove_bucket(bucket)
+            try:
+                mc.remove_bucket(bucket)
+            except Exception as e:
+                log.error("Failed to remove bucket %s: %s", bucket, e)
+                return {"error": str(e)}, 400
             return {"message": "Deleted"}, 200
         else:
             for fname in filenames:

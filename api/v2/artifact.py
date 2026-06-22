@@ -62,6 +62,8 @@ class ProjectAPI(api_tools.APIModeHandler):
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int, bucket: str):
         filename: str = request.args.get('filename')
+        if not filename:
+            return {'error': 'filename query parameter is required'}, 400
         decoded_filename: str = urllib.parse.unquote(filename)
         
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
