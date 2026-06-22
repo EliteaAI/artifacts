@@ -24,7 +24,7 @@ from tools import api_tools, auth, register_openapi
 
 from ...models.pd.api_models import S3CredentialCreateRequest
 
-_PROJECT_PARAM = {"name": "project_id", "in": "path", "schema": {"type": "string"},
+_PROJECT_PARAM = {"name": "project_id", "in": "path", "schema": {"type": "integer"},
                   "description": "Project identifier."}
 _ACCESS_KEY_PARAM = {"name": "access_key_id", "in": "path", "schema": {"type": "string"},
                      "description": "S3 access key ID."}
@@ -38,9 +38,11 @@ class ProjectAPI(api_tools.APIModeHandler):
         description="List all S3 API credentials for a project, or get a specific credential by access key ID.",
         parameters=[
             _PROJECT_PARAM,
-            {"name": "access_key_id", "in": "path", "schema": {"type": "string"},
-             "description": "Access key ID (optional — omit to list all credentials)."},
+            {"name": "access_key_id", "in": "query", "required": False,
+             "schema": {"type": "string"},
+             "description": "Access key ID. If omitted, lists all credentials for the project."},
         ],
+        path_suffix_override='<string:mode>/<int:project_id>',
         available_to_users=True,
     )
     @auth.decorators.check_api({

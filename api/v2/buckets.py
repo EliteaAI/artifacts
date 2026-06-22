@@ -41,7 +41,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="List Buckets",
         description="List all S3 buckets for a project.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
@@ -76,7 +76,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Create Bucket",
         description="Create a new S3 bucket with an optional retention policy.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
@@ -166,7 +166,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Update Bucket Retention",
         description="Update the retention policy of an existing bucket.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
@@ -243,7 +243,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Delete Bucket",
         description="Delete a bucket by name.",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "name", "in": "query", "schema": {"type": "string"},
              "description": "Bucket name to delete."},
@@ -267,7 +267,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         name="Patch Bucket",
         description="Update bucket metadata tags (e.g. pin/unpin a bucket).",
         parameters=[
-            {"name": "project_id", "in": "path", "schema": {"type": "string"},
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
             {"name": "name", "in": "query", "schema": {"type": "string"},
              "description": "Bucket name to patch."},
