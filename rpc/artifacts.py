@@ -20,7 +20,7 @@ from hurry.filesize import size
 from tools import MinioClient, api_tools
 from pylon.core.tools import log, web
 
-from ..utils.utils import parse_filepath, make_filepath
+from ..utils.utils import parse_filepath, make_filepath, get_max_upload_bytes
 
 
 class RPC:
@@ -117,9 +117,14 @@ class RPC:
         NOTE: Do not use across different pylons
         """
         try:
+            # Backstop for callers that bypass the HTTP size checks (internal RPC).
+            max_bytes = get_max_upload_bytes(project_id)
+            if file_data is not None and len(file_data) > max_bytes:
+                raise RuntimeError(f"File '{filename}' exceeds limit of {max_bytes} bytes")
+
             project = self.context.rpc_manager.timeout(3).project_get_or_404(project_id=project_id)
             mc = MinioClient(project, configuration_title=configuration_title)
-            
+
             was_duplicate = False
 
             # Check for duplicates if requested and not overwriting

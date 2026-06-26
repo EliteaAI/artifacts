@@ -33,6 +33,11 @@ from ..responses import (
     copy_object_response,
     error_response
 )
+from ...utils.utils import get_max_upload_bytes, extract_project_id
+
+
+# Read granularity for the capped body read.
+UPLOAD_READ_CHUNK = 512 * 1024
 
 
 class ObjectHandler:
@@ -177,8 +182,37 @@ class ObjectHandler:
                     status_code=404
                 )
 
-            # Get request body
-            data = request.get_data()
+            # Enforce the size limit before buffering the body into worker RAM.
+            max_bytes = get_max_upload_bytes(extract_project_id(self.project))
+
+            # Fast path: reject honest oversized uploads before reading a byte.
+            content_length = request.content_length
+            if content_length is not None and content_length > max_bytes:
+                return error_response(
+                    code='EntityTooLarge',
+                    message=f'Object size {content_length} exceeds limit of {max_bytes} bytes',
+                    resource=f'/{bucket_name}/{key}',
+                    status_code=413,
+                )
+
+            # Hard ceiling: enforce during the read so a chunked transfer-encoding
+            # (no Content-Length) or an understated header cannot bypass the limit.
+            chunks = []
+            total = 0
+            while True:
+                chunk = request.stream.read(UPLOAD_READ_CHUNK)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > max_bytes:
+                    return error_response(
+                        code='EntityTooLarge',
+                        message=f'Object size exceeds limit of {max_bytes} bytes',
+                        resource=f'/{bucket_name}/{key}',
+                        status_code=413,
+                    )
+                chunks.append(chunk)
+            data = b''.join(chunks)
 
             # Upload the object
             self.mc.upload_file(bucket_name, data, key)
