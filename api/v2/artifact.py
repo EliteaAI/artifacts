@@ -23,7 +23,6 @@ class ProjectAPI(api_tools.APIModeHandler):
             {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
              "description": "Optional S3 configuration title override."},
         ],
-        path_suffix_override='<string:mode>/<int:project_id>/<string:bucket>/{filename}',
         available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])

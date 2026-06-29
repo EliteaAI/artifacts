@@ -42,7 +42,6 @@ class ProjectAPI(api_tools.APIModeHandler):
              "schema": {"type": "string"},
              "description": "Access key ID. If omitted, lists all credentials for the project."},
         ],
-        path_suffix_override='<string:mode>/<int:project_id>',
         available_to_users=True,
     )
     @auth.decorators.check_api({
