@@ -36,10 +36,6 @@ from ..responses import (
 from ...utils.utils import get_max_upload_bytes, extract_project_id
 
 
-# Read granularity for the capped body read.
-UPLOAD_READ_CHUNK = 512 * 1024
-
-
 class ObjectHandler:
     """Handler for S3 object operations"""
 
@@ -195,24 +191,17 @@ class ObjectHandler:
                     status_code=413,
                 )
 
-            # Hard ceiling: enforce during the read so a chunked transfer-encoding
-            # (no Content-Length) or an understated header cannot bypass the limit.
-            chunks = []
-            total = 0
-            while True:
-                chunk = request.stream.read(UPLOAD_READ_CHUNK)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > max_bytes:
-                    return error_response(
-                        code='EntityTooLarge',
-                        message=f'Object size exceeds limit of {max_bytes} bytes',
-                        resource=f'/{bucket_name}/{key}',
-                        status_code=413,
-                    )
-                chunks.append(chunk)
-            data = b''.join(chunks)
+            # Use get_data() rather than request.stream so Werkzeug's body cache
+            # is honoured — if auth middleware upstream already called get_data(),
+            # stream is at EOF but the cache still holds the real bytes.
+            data = request.get_data()
+            if len(data) > max_bytes:
+                return error_response(
+                    code='EntityTooLarge',
+                    message=f'Object size exceeds limit of {max_bytes} bytes',
+                    resource=f'/{bucket_name}/{key}',
+                    status_code=413,
+                )
 
             # Upload the object
             self.mc.upload_file(bucket_name, data, key)
