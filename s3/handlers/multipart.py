@@ -21,7 +21,17 @@ import hashlib
 import json
 from datetime import datetime
 from typing import Dict, Optional
-from xml.etree.ElementTree import fromstring
+import xml.etree.ElementTree as ET
+
+
+class _NoDTDTarget(ET.TreeBuilder):
+    """TreeBuilder that rejects DOCTYPE/DTD to block XML entity-expansion bombs."""
+    def doctype(self, name, pubid, system):
+        raise ValueError("DTD/DOCTYPE is not allowed in request body")
+
+
+def _safe_fromstring(data):
+    return ET.fromstring(data, parser=ET.XMLParser(target=_NoDTDTarget()))
 from flask import request, Response
 
 from pylon.core.tools import log
@@ -310,7 +320,7 @@ class MultipartHandler:
             # Parse request body for part list
             body = request.get_data()
             try:
-                root = fromstring(body)
+                root = _safe_fromstring(body)
                 # Handle namespace
                 ns = {'s3': 'http://s3.amazonaws.com/doc/2006-03-01/'}
                 parts = []
