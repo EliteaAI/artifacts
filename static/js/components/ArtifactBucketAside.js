@@ -147,7 +147,6 @@ const ArtifactBucketAside = {
                         id="bucketSearch"
                         type="text"
                         placeholder="Bucket name">
-                    <img src="${url_prefix}/design-system/static/assets/ico/search.svg" class="icon-search position-absolute">
                 </div>
                 <p class="font-h6 font-semibold mb-1">Storage</p>
                 <select id='selector_integration' class="selectpicker bootstrap-select__b bootstrap-select__b-sm" data-style="btn">
@@ -175,8 +174,7 @@ const ArtifactBucketAside = {
                     data-unique-id="id"
                     data-sort-name="name"
                     data-sort-order="asc"
-                    data-pagination-pre-text="<img src='${url_prefix}/design-system/static/assets/ico/arrow_left.svg'>"
-                    data-pagination-next-text="<img src='${url_prefix}/design-system/static/assets/ico/arrow_right.svg'>">
+>
                     <thead class="thead-light bg-transparent">
                         <tr>
                             <th data-visible="false" data-field="id">index</th>
