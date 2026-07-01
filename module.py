@@ -18,7 +18,7 @@ from queue import Empty
 from pylon.core.tools import log  # pylint: disable=E0611,E0401
 from pylon.core.tools import module  # pylint: disable=E0611,E0401
 from pylon.core.tools import web  # pylint: disable=E0611,E0401
-from tools import theme
+from tools import auth  # pylint: disable=E0401
 
 from .models.pd.configuration import configuration_record
 from .models.pd.s3_credentials import s3_api_credentials_configuration_record
@@ -60,38 +60,14 @@ class Module(module.ModuleModel):
         # This includes: api/, slots/, events/, rpc/, routes/, methods/, inits/
         self.descriptor.init_all()
 
-        theme.register_subsection(
-            "configuration", "artifacts",
-            "Artifacts",
-            title="Artifacts",
-            kind="slot",
-            permissions={
-                "permissions": ["configuration.artifacts"],
-                "recommended_roles": {
-                    "administration": {"admin": True, "viewer": True, "editor": True},
-                    "default": {"admin": True, "viewer": True, "editor": True},
-                    "developer": {"admin": True, "viewer": True, "editor": True},
-                }},
-            prefix="artifacts_",
-            weight=5,
-        )
-
-        theme.register_mode_subsection(
-            "administration", "configuration",
-            "artifacts", "Artifacts",
-            title="Artifacts",
-            kind="slot",
-            permissions={
-                "permissions": ["configuration.artifacts"],
-                "recommended_roles": {
-                    "administration": {"admin": True, "viewer": True, "editor": True},
-                    "default": {"admin": True, "viewer": True, "editor": True},
-                    "developer": {"admin": True, "viewer": True, "editor": True},
-                }},
-            prefix="administration_artifacts_",
-            # icon_class="fas fa-server fa-fw",
-            # weight=2,
-        )
+        auth.register_permissions({
+            "permissions": ["configuration.artifacts"],
+            "recommended_roles": {
+                "administration": {"admin": True, "viewer": True, "editor": True},
+                "default": {"admin": True, "viewer": True, "editor": True},
+                "developer": {"admin": True, "viewer": True, "editor": True},
+            }
+        })
 
     def deinit(self):  # pylint: disable=R0201
         """ De-init module """
