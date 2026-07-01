@@ -108,8 +108,7 @@ const ArtifactFilesTable = {
                     data-unique-id="id"
                     data-page-list="[5, 10, 15]"
                     data-pagination="true"
-                    data-pagination-pre-text="<img src='${url_prefix}/design-system/static/assets/ico/arrow_left.svg'>"
-                    data-pagination-next-text="<img src='${url_prefix}/design-system/static/assets/ico/arrow_right.svg'>"
+
                     data-page-size=5>
                     <thead class="thead-light">
                         <tr>
