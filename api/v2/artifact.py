@@ -13,6 +13,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Download Artifact",
         description="Download a file from a project bucket.",
+        mcp_description="Use this tool when you need the actual contents of one known file and already know its bucket and exact filename/path. Do not use this tool to browse bucket contents, discover filenames, or upload files — use List Artifacts or Upload Artifact instead. Do not use for whole-bucket operations. This tool is best for 'fetch this file now' scenarios after the file has already been discovered elsewhere.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},

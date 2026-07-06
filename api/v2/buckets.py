@@ -40,6 +40,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="List Buckets",
         description="List all S3 buckets for a project.",
+        mcp_description="Use this tool when you need to discover which buckets exist in a project before listing files or uploading artifacts. Do not use this tool to inspect files inside a bucket — use List Artifacts. Do not use to create, update, or pin buckets. This is the top-level discovery endpoint for project storage structure.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
@@ -75,6 +76,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Create Bucket",
         description="Create a new S3 bucket with an optional retention policy.",
+        mcp_description="Use this tool when you need a new storage container for artifacts in a project. Do not use this tool to upload files — create the bucket first, then use Upload Artifact. Do not use to change retention on an existing bucket — use Update Bucket Retention. This tool has important side effects: retention policies can trigger automatic file deletion later, so it should be chosen only when a new bucket is actually needed.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
@@ -165,6 +167,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Update Bucket Retention",
         description="Update the retention policy of an existing bucket.",
+        mcp_description="Use this tool when you need to change how long files in an existing bucket are retained before lifecycle deletion begins. Do not use this tool to rename a bucket, create a new bucket, or upload files. Do not use when you only want to pin or unpin a bucket — use Patch Bucket. This tool changes deletion behavior for files, so it should be treated as a storage-governance operation rather than a cosmetic update.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
@@ -266,6 +269,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Patch Bucket",
         description="Update bucket metadata tags (e.g. pin/unpin a bucket).",
+        mcp_description="Use this tool when you need to change lightweight bucket metadata such as pinned state for UI or organizational purposes. Do not use this tool to change retention, create a bucket, or upload/delete files. Do not use for any action that affects stored objects directly. This is a metadata-only bucket update endpoint.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
