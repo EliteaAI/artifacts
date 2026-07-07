@@ -36,6 +36,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="List or Get S3 Credentials",
         description="List all S3 API credentials for a project, or get a specific credential by access key ID.",
+        mcp_tool=True,
         mcp_description="Use this tool when you need to discover what S3 API credentials exist or inspect metadata for a known access key. Do not use this tool if you expect to retrieve the secret key of an existing credential — secrets are not returned here. Do not use to create or rotate credentials — use the dedicated create/rotate endpoints. This tool is read-only and safe for credential inventory workflows.",
         parameters=[
             _PROJECT_PARAM,
@@ -85,6 +86,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Create S3 Credential",
         description="Create new S3 API credentials for a project. The secret_access_key is returned only in this response.",
+        mcp_tool=True,
         mcp_description="Use this tool when you need a brand-new credential for a new integration, service account, CI/CD pipeline, or external consumer. Do not use this tool if you only need to refresh the secret for an existing credential — use Rotate S3 Credential. Do not use if you only want to inspect currently configured keys — use List or Get S3 Credentials. Treat the returned secret as one-time output that must be securely captured immediately.",
         parameters=[_PROJECT_PARAM],
         request_body=S3CredentialCreateRequest,
@@ -185,6 +187,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Rotate S3 Credential",
         description="Rotate S3 credentials — generates a new secret_access_key. The new secret is returned only in this response.",
+        mcp_tool=True,
         mcp_description="Use this tool when an existing credential should keep its identity/access key ID but receive a brand new secret. Do not use this tool to inspect credentials or list them — use List or Get S3 Credentials. Do not use to create a separate new credential — use Create S3 Credential. This tool is security-sensitive because the returned secret is one-time visible and should be stored immediately.",
         parameters=[_PROJECT_PARAM, _ACCESS_KEY_PARAM],
         available_to_users=True,

@@ -28,6 +28,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="List Artifacts",
         description="List files in a project bucket.",
+        mcp_tool=True,
         mcp_description="Use this tool when you need to inspect what files exist in a bucket before choosing one to download, delete, or reference elsewhere. Do not use this tool when you already know the exact file and need its bytes — use Download Artifact. Do not use to create buckets or upload new files. This is the primary discovery endpoint for bucket contents.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
@@ -72,6 +73,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Upload Artifact",
         description="Upload a file to a project bucket (multipart/form-data, field name: 'file').",
+        mcp_tool=True,
         mcp_description="Use this tool when you need to store a file in a project bucket and want the resulting bucket/file path back. Do not use this tool to create or manage bucket retention policies — use bucket endpoints for that. Do not use for downloading or listing files. If you want to replace an existing file intentionally, set overwrite=true; otherwise keep overwrite behavior explicit in the calling workflow. If the bucket may not exist yet, enable create_if_not_exists.",
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
@@ -165,6 +167,7 @@ class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
         name="Delete Artifacts",
         description="Delete one or more files from a bucket. If no filenames are provided, the entire bucket is removed.",
+        mcp_tool=True,
         parameters=[
             {"name": "project_id", "in": "path", "schema": {"type": "integer"},
              "description": "Project identifier."},
