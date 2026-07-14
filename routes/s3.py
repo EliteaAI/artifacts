@@ -31,6 +31,25 @@ from ..s3.handlers.object import ObjectHandler
 from ..s3.handlers.multipart import MultipartHandler
 
 
+def _check_bucket_perm(credential: dict, bucket: str, required: str) -> bool:
+    """Return True if the credential has the required permission for the bucket.
+
+    Empty bucket_permissions = no restrictions (unrestricted access).
+    required: 'read' or 'write'.
+    'read' is satisfied by any non-empty permission list for the bucket.
+    'write' requires 'write' explicitly present.
+    """
+    perms = credential.get('bucket_permissions', {})
+    if not perms:
+        return True
+    allowed = perms.get(bucket, [])
+    if not allowed:
+        return False
+    if required == 'read':
+        return True
+    return 'write' in allowed
+
+
 class Route:  # pylint: disable=E1101,R0903
     """ S3-Compatible API Routes """
 
@@ -53,7 +72,8 @@ class Route:  # pylint: disable=E1101,R0903
             handler = BucketHandler(
                 project,
                 owner_id=credential['user_id'],
-                owner_name=credential.get('name', '')
+                owner_name=credential.get('name', ''),
+                bucket_permissions=credential.get('bucket_permissions', {})
             )
             return handler.list_buckets()
         except Exception as e:
@@ -74,6 +94,11 @@ class Route:  # pylint: disable=E1101,R0903
 
         credential = auth_result['credential']
         project_id = credential['project_id']
+
+        method = flask.request.method
+        required_perm = 'write' if method in ('PUT', 'DELETE') else 'read'
+        if not _check_bucket_perm(credential, bucket, required_perm):
+            return responses.error_response('AccessDenied', 'Access denied to this bucket', status_code=403)
 
         try:
             project = self.context.rpc_manager.call.project_get_or_404(project_id=project_id)
@@ -123,6 +148,11 @@ class Route:  # pylint: disable=E1101,R0903
         credential = auth_result['credential']
         project_id = credential['project_id']
 
+        if not _check_bucket_perm(credential, source_bucket, 'read'):
+            return responses.error_response('AccessDenied', 'Access denied to source bucket', status_code=403)
+        if not _check_bucket_perm(credential, destination_bucket, 'write'):
+            return responses.error_response('AccessDenied', 'Access denied to destination bucket', status_code=403)
+
         try:
             project = self.context.rpc_manager.call.project_get_or_404(project_id=project_id)
             handler = BucketHandler(project)
@@ -145,6 +175,10 @@ class Route:  # pylint: disable=E1101,R0903
 
         credential = auth_result['credential']
         project_id = credential['project_id']
+
+        obj_required = 'write' if flask.request.method in ('PUT', 'DELETE', 'POST') else 'read'
+        if not _check_bucket_perm(credential, bucket, obj_required):
+            return responses.error_response('AccessDenied', 'Access denied to this bucket', status_code=403)
 
         try:
             project = self.context.rpc_manager.call.project_get_or_404(project_id=project_id)

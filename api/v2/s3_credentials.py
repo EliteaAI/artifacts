@@ -131,21 +131,24 @@ class ProjectAPI(api_tools.APIModeHandler):
             expires_at = datetime.utcnow() + timedelta(days=int(expires_in_days))
 
         permissions = args.get('permissions', [])
+        bucket_permissions = args.get('bucket_permissions', {})
+        target_user_id = args.get('user_id') or user['id']
 
         # Create the credential
         credential = rpc.call.s3_credentials_create(
             name=name,
             project_id=project_id,
-            user_id=user['id'],
+            user_id=target_user_id,
             expires_at=expires_at,
-            permissions=permissions
+            permissions=permissions,
+            bucket_permissions=bucket_permissions
         )
 
         if not credential:
             return {'error': 'Failed to create credential'}, 500
 
         log.info("Created S3 credential %s for project %d by user %d",
-                 credential['access_key_id'], project_id, user['id'])
+                 credential['access_key_id'], project_id, target_user_id)
 
         return credential, 201
 

@@ -605,6 +605,7 @@ def verify_bearer_auth(flask_request) -> dict:
                 'project_id': project_id,
                 'user_id': user_id,
                 'name': credentials.get('name', 'Bearer Token User'),
+                'bucket_permissions': credentials.get('bucket_permissions', {}),
             }
         }
 

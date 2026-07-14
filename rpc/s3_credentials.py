@@ -35,7 +35,8 @@ class RPC:
     @web.rpc('s3_credentials_create', 'create')
     def create(self, name: str, project_id: int, user_id: int,
                expires_at: Optional[datetime] = None,
-               permissions: Optional[List[str]] = None) -> Optional[Dict]:
+               permissions: Optional[List[str]] = None,
+               bucket_permissions: Optional[Dict] = None) -> Optional[Dict]:
         """
         Create new S3 API credentials as a configuration item.
 
@@ -64,6 +65,7 @@ class RPC:
                 'user_id': user_id,
                 'expires_at': expires_at.isoformat() if expires_at else None,
                 'permissions': permissions or [],
+                'bucket_permissions': bucket_permissions or {},
                 'is_active': True,
                 'created_at': datetime.utcnow().isoformat()
             }
@@ -90,6 +92,7 @@ class RPC:
                 'created_at': config_payload['data']['created_at'],
                 'expires_at': config_payload['data']['expires_at'],
                 'permissions': permissions or [],
+                'bucket_permissions': bucket_permissions or {},
                 'is_active': True
             }
 
@@ -165,6 +168,7 @@ class RPC:
                 'created_at': data.get('created_at'),
                 'expires_at': data.get('expires_at'),
                 'permissions': data.get('permissions', []),
+                'bucket_permissions': data.get('bucket_permissions', {}),
                 'is_active': data.get('is_active', True)
             }
 
@@ -200,6 +204,7 @@ class RPC:
                     'created_at': data.get('created_at'),
                     'expires_at': data.get('expires_at'),
                     'permissions': data.get('permissions', []),
+                    'bucket_permissions': data.get('bucket_permissions', {}),
                     'is_active': data.get('is_active', True)
                     # Note: secret_access_key is NOT included
                 })
@@ -301,6 +306,59 @@ class RPC:
             log.error("Failed to get/create S3 credentials for bearer: %s", e)
             return None
 
+    @web.rpc('s3_credentials_update_bucket_permissions', 'update_bucket_permissions')
+    def update_bucket_permissions(self, access_key_id: str, project_id: int,
+                                   bucket_permissions: Dict) -> Optional[Dict]:
+        """
+        Update bucket_permissions on an existing S3 credential.
+
+        bucket_permissions: {bucket_name: ['read', 'write']} or {} (unrestricted).
+        Pass an empty dict to remove all bucket restrictions.
+        """
+        rpc = context.rpc_manager
+
+        try:
+            configs = rpc.timeout(5).configurations_get_filtered_project(
+                project_id=project_id,
+                include_shared=False,
+                filter_fields={
+                    'type': 's3_api_credentials',
+                    'elitea_title': access_key_id.lower()
+                }
+            )
+
+            if not configs:
+                log.warning("S3 credential not found: %s", access_key_id)
+                return None
+
+            config = configs[0]
+            config_id = config.get('id')
+            data = config.get('data', {})
+
+            data['bucket_permissions'] = bucket_permissions
+
+            rpc.timeout(5).configurations_update(
+                project_id=project_id,
+                config_id=config_id,
+                payload={'data': data}
+            )
+
+            log.info("Updated bucket_permissions for S3 credential %s", access_key_id)
+
+            return {
+                'id': config_id,
+                'access_key_id': access_key_id,
+                'project_id': project_id,
+                'user_id': data.get('user_id'),
+                'permissions': data.get('permissions', []),
+                'bucket_permissions': bucket_permissions,
+                'is_active': data.get('is_active', True)
+            }
+
+        except Exception as e:
+            log.error("Failed to update bucket_permissions for %s: %s", access_key_id, e)
+            return None
+
     @web.rpc('s3_credentials_rotate', 'rotate')
     def rotate(self, access_key_id: str, project_id: int) -> Optional[Dict]:
         """
@@ -355,6 +413,7 @@ class RPC:
                 'expires_at': data.get('expires_at'),
                 'rotated_at': data['rotated_at'],
                 'permissions': data.get('permissions', []),
+                'bucket_permissions': data.get('bucket_permissions', {}),
                 'is_active': data.get('is_active', True)
             }
 

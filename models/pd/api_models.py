@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -54,8 +54,13 @@ class BucketPatchRequest(BaseModel):
 
 class S3CredentialCreateRequest(BaseModel):
     name: Optional[str] = Field("S3 Access Key", description="Display name for the credential")
+    user_id: Optional[int] = Field(None, description="User ID to assign credential to (defaults to current user)")
     expires_in_days: Optional[int] = Field(None, description="Number of days until expiration (omit for no expiry)")
     permissions: Optional[List[str]] = Field(default_factory=list, description="Permitted S3 operations (empty = all)")
+    bucket_permissions: Optional[Dict[str, List[str]]] = Field(
+        default_factory=dict,
+        description="Per-bucket permissions: {bucket_name: ['read', 'write']}. Empty = unrestricted."
+    )
 
     model_config = ConfigDict(
         json_schema_extra={

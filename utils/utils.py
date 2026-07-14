@@ -82,15 +82,61 @@ def parse_filepath(filepath: str) -> Tuple[str, str]:
 def make_filepath(bucket: str, filename: str) -> str:
     """
     Construct filepath from bucket and filename.
-    
+
     Args:
         bucket: Bucket name
         filename: File name (may include folder path)
-        
+
     Returns:
         Filepath string in format /{bucket}/{filename}
     """
     return f"/{bucket}/{filename}"
+
+
+def check_bucket_permission(project_id: int, user_id: int, bucket: str, required: str) -> bool:
+    """
+    Check if a user has the required permission for a bucket.
+
+    Uses the S3 credentials system to determine bucket-level access.
+    Empty bucket_permissions means unrestricted access (for backwards compatibility).
+
+    Args:
+        project_id: Project ID
+        user_id: User ID to check permissions for
+        bucket: Bucket name
+        required: Required permission - 'read' or 'write'
+
+    Returns:
+        True if user has permission, False otherwise
+    """
+    from tools import context
+
+    try:
+        credentials = context.rpc_manager.timeout(5).s3_credentials_list_by_project(
+            project_id=project_id
+        )
+
+        for cred in credentials:
+            if cred.get('user_id') != user_id:
+                continue
+            if not cred.get('is_active', True):
+                continue
+
+            perms = cred.get('bucket_permissions', {})
+            if not perms:
+                return True
+
+            allowed = perms.get(bucket, [])
+            if not allowed:
+                return False
+
+            if required == 'read':
+                return True
+            return 'write' in allowed
+
+        return True
+    except Exception:
+        return True
 
 
 

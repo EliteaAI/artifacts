@@ -59,6 +59,20 @@ class ProjectAPI(api_tools.APIModeHandler):
         except AttributeError:
             return {'error': f'Error accessing s3: {configuration_title}'}, 400
         buckets = mc.list_bucket()
+
+        # Apply bucket-level access filter for non-admin users
+        current_user = auth.current_user()
+        user_id = current_user.get('id')
+        rpc = self.module.context.rpc_manager
+        user_is_admin = rpc.call.admin_check_user_is_admin(project_id, user_id)
+        if not user_is_admin:
+            cred = rpc.call.s3_credentials_list_by_project(project_id=project_id)
+            user_cred = next((c for c in cred if c.get('user_id') == user_id and c.get('is_active', True)), None)
+            if user_cred:
+                bucket_permissions = user_cred.get('bucket_permissions', {})
+                if bucket_permissions:
+                    buckets = [b for b in buckets if b in bucket_permissions]
+
         rows = []
         for bucket in buckets:
             bucket_size = mc.get_bucket_size(bucket)
@@ -72,7 +86,7 @@ class ProjectAPI(api_tools.APIModeHandler):
                              ),
                         )
         rows.sort(key=lambda x: x['name'])
-        return {"total": len(buckets), "rows": rows}, 200
+        return {"total": len(rows), "rows": rows}, 200
 
     @register_openapi(
         name="Create Bucket",
