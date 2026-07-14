@@ -52,7 +52,7 @@ class BucketHandler:
             buckets = self.mc.list_bucket()
 
             if self.bucket_permissions:
-                buckets = [b for b in buckets if b in self.bucket_permissions]
+                buckets = [b for b in buckets if b in self.bucket_permissions and self.bucket_permissions[b]]
 
             # Build bucket list with metadata
             bucket_list = []
