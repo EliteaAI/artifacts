@@ -116,6 +116,11 @@ class ProjectAPI(api_tools.APIModeHandler):
         }})
     def post(self, project_id: int, bucket: str):
         """Upload file and return filepath."""
+        user = auth.current_user()
+        user_id = user.get('id') if user else None
+        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
+            return {'error': 'You have read-only permission for this bucket'}, 403
+
         configuration_title = request.args.get('configuration_title')
 
         # Reject oversized uploads before request.files buffers the body into RAM.

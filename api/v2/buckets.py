@@ -11,6 +11,7 @@ from pylon.core.tools import log
 from tools import MinioClient, api_tools, auth, register_openapi
 
 from ...models.pd.api_models import BucketCreateRequest, BucketUpdateRequest, BucketPatchRequest
+from ...utils.utils import check_bucket_permission
 
 
 def _update_bucket_tags(mc, bucket, new_tags):
@@ -206,6 +207,11 @@ class ProjectAPI(api_tools.APIModeHandler):
         bucket = args.get("name").replace("_", "").replace(" ", "").lower()
         if not bucket:
             return {"message": "Name of bucket not provided"}, 400
+
+        user = auth.current_user()
+        user_id = user.get('id') if user else None
+        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
+            return {'error': 'You have read-only permission for this bucket'}, 403
         expiration_measure = args.get("expiration_measure")
         expiration_value = args.get("expiration_value")
         configuration_title = request.args.get('configuration_title')
@@ -310,6 +316,11 @@ class ProjectAPI(api_tools.APIModeHandler):
         bucket = request.args.get("name")
         if not bucket:
             return {"message": "Name of bucket not provided"}, 400
+
+        user = auth.current_user()
+        user_id = user.get('id') if user else None
+        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
+            return {'error': 'You have read-only permission for this bucket'}, 403
 
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         configuration_title = request.args.get('configuration_title')
