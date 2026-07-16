@@ -658,6 +658,13 @@ def verify_s3_auth(flask_request) -> dict:
     if not verify_signature(sig_components, credentials):
         return {'error': 'Invalid signature'}
 
+    # Look up full credential data to get bucket_permissions
+    rpc = context.rpc_manager
+    full_cred = rpc.timeout(5).s3_credentials_get_by_access_key(
+        access_key_id=credentials.access_key_id
+    )
+    bucket_permissions = full_cred.get('bucket_permissions', {}) if full_cred else {}
+
     # Return credential info
     return {
         'credential': {
@@ -665,5 +672,6 @@ def verify_s3_auth(flask_request) -> dict:
             'project_id': credentials.project_id,
             'user_id': credentials.user_id,
             'name': credentials.name,
+            'bucket_permissions': bucket_permissions,
         }
     }

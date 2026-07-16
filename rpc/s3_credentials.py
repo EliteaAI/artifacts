@@ -281,17 +281,14 @@ class RPC:
         try:
             credentials = self.list_by_project(project_id)
 
+            # Only return credentials belonging to this user
             for cred in credentials:
                 if cred.get('user_id') == user_id and cred.get('is_active', True):
                     full_cred = self.get_by_access_key(cred['access_key_id'])
                     if full_cred:
                         return full_cred
-            for cred in credentials:
-                if cred.get('is_active', True):
-                    full_cred = self.get_by_access_key(cred['access_key_id'])
-                    if full_cred:
-                        return full_cred
 
+            # No credential found for this user - create new one
             new_cred = self.create(
                 name=f'Bearer - {user_name}',
                 project_id=project_id,

@@ -134,9 +134,13 @@ def check_bucket_permission(project_id: int, user_id: int, bucket: str, required
                 return True
             return 'write' in allowed
 
+        # No credential found for this user - allow access (user hasn't set up S3 credentials)
+        # This maintains backwards compatibility: users without S3 credentials use project-level access
         return True
-    except Exception:
-        return True
+    except Exception as e:
+        from pylon.core.tools import log
+        log.error("Failed to check bucket permission: %s", e)
+        return False
 
 
 
