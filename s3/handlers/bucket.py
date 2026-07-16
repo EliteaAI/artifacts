@@ -34,18 +34,12 @@ from ..responses import (
 class BucketHandler:
     """Handler for S3 bucket operations"""
 
-    def __init__(self, project, owner_id: int = None, owner_name: str = None):
-        """
-        Initialize the bucket handler with project context.
-
-        Args:
-            project: The project object for MinioClient
-            owner_id: User ID for owner info in responses
-            owner_name: User name for owner info in responses
-        """
+    def __init__(self, project, owner_id: int = None, owner_name: str = None,
+                 bucket_permissions: dict = None):
         self.project = project
         self.owner_id = owner_id or 0
         self.owner_name = owner_name or ''
+        self.bucket_permissions = bucket_permissions or {}
         self.mc = MinioClient(project)
 
     def list_buckets(self) -> Response:
@@ -56,6 +50,9 @@ class BucketHandler:
         """
         try:
             buckets = self.mc.list_bucket()
+
+            if self.bucket_permissions:
+                buckets = [b for b in buckets if b in self.bucket_permissions and self.bucket_permissions[b]]
 
             # Build bucket list with metadata
             bucket_list = []

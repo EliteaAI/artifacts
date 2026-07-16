@@ -19,7 +19,7 @@
 import secrets
 import string
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, SecretStr, ConfigDict
 
 
@@ -72,6 +72,10 @@ class S3ApiCredentialsConfig(BaseModel):
     permissions: List[str] = Field(
         default_factory=list,
         description="Permitted S3 operations (empty = all)"
+    )
+    bucket_permissions: Dict[str, List[str]] = Field(
+        default_factory=dict,
+        description="Per-bucket permissions: {bucket_name: ['read', 'write']}. Empty = unrestricted."
     )
     is_active: bool = Field(default=True, description="Whether credential is active")
 

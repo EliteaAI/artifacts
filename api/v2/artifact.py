@@ -8,6 +8,8 @@ from botocore.exceptions import ClientError
 
 from tools import MinioClient, api_tools, auth, register_openapi
 
+from ...utils.utils import require_bucket_write_permission
+
 
 class ProjectAPI(api_tools.APIModeHandler):
     @register_openapi(
@@ -62,22 +64,23 @@ class ProjectAPI(api_tools.APIModeHandler):
         available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
+    @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def delete(self, project_id: int, bucket: str):
         filename: str = request.args.get('filename')
         if not filename:
             return {'error': 'filename query parameter is required'}, 400
         decoded_filename: str = urllib.parse.unquote(filename)
-        
+
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         configuration_title = request.args.get('configuration_title')
         try:
             mc = MinioClient(project, configuration_title=configuration_title)
         except AttributeError:
             return {'error': f'Error accessing s3: {configuration_title}'}, 400
-        
+
         # Delete from S3
         mc.remove_file(bucket, decoded_filename)
-        
+
         return {"message": "Deleted", "size": size(mc.get_bucket_size(bucket))}, 200
 
 
