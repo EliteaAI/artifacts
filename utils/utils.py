@@ -22,6 +22,9 @@ from tools import VaultClient
 # Default single-file upload limit when the vault secret is unset (MB).
 DEFAULT_MAX_FILE_UPLOAD_SIZE_MB = 150
 
+# Valid bucket permission values
+VALID_BUCKET_PERMISSIONS = {'read', 'write'}
+
 
 def extract_project_id(project):
     """
@@ -93,6 +96,30 @@ def make_filepath(bucket: str, filename: str) -> str:
     return f"/{bucket}/{filename}"
 
 
+def check_bucket_perm_from_dict(bucket_permissions: dict, bucket: str, required: str) -> bool:
+    """
+    Core permission check logic used by both REST API and S3 routes.
+
+    Args:
+        bucket_permissions: The bucket_permissions dict from a credential
+        bucket: Bucket name to check
+        required: Required permission - 'read' or 'write'
+
+    Returns:
+        True if permission is granted, False otherwise
+    """
+    if not bucket_permissions:
+        return True
+
+    allowed = bucket_permissions.get(bucket, [])
+    if not allowed:
+        return False
+
+    if required == 'read':
+        return True
+    return 'write' in allowed
+
+
 def check_bucket_permission(project_id: int, user_id: int, bucket: str, required: str) -> bool:
     """
     Check if a user has the required permission for a bucket.
@@ -122,17 +149,9 @@ def check_bucket_permission(project_id: int, user_id: int, bucket: str, required
             if not cred.get('is_active', True):
                 continue
 
-            perms = cred.get('bucket_permissions', {})
-            if not perms:
-                return True
-
-            allowed = perms.get(bucket, [])
-            if not allowed:
-                return False
-
-            if required == 'read':
-                return True
-            return 'write' in allowed
+            return check_bucket_perm_from_dict(
+                cred.get('bucket_permissions', {}), bucket, required
+            )
 
         # No credential found for this user - allow access (user hasn't set up S3 credentials)
         # This maintains backwards compatibility: users without S3 credentials use project-level access
@@ -141,6 +160,38 @@ def check_bucket_permission(project_id: int, user_id: int, bucket: str, required
         from pylon.core.tools import log
         log.error("Failed to check bucket permission: %s", e)
         return False
+
+
+def require_bucket_write_permission(get_bucket_from_request):
+    """
+    Decorator factory for bucket write permission checks on REST API endpoints.
+
+    Args:
+        get_bucket_from_request: Function that extracts bucket name from request context.
+                                 Signature: (request, **kwargs) -> str
+
+    Usage:
+        @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
+        def post(self, project_id: int, bucket: str):
+            ...
+    """
+    from functools import wraps
+    from flask import request
+    from tools import auth
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(self, project_id: int, *args, **kwargs):
+            user = auth.current_user()
+            user_id = user.get('id') if user else None
+            bucket = get_bucket_from_request(request, **kwargs)
+
+            if user_id and bucket and not check_bucket_permission(project_id, user_id, bucket, 'write'):
+                return {'error': 'You have read-only permission for this bucket'}, 403
+
+            return f(self, project_id, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 

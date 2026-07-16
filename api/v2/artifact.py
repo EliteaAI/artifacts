@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from tools import MinioClient, api_tools, auth, register_openapi
 
-from ...utils.utils import check_bucket_permission
+from ...utils.utils import require_bucket_write_permission
 
 
 class ProjectAPI(api_tools.APIModeHandler):
@@ -64,16 +64,12 @@ class ProjectAPI(api_tools.APIModeHandler):
         available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
+    @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def delete(self, project_id: int, bucket: str):
         filename: str = request.args.get('filename')
         if not filename:
             return {'error': 'filename query parameter is required'}, 400
         decoded_filename: str = urllib.parse.unquote(filename)
-
-        user = auth.current_user()
-        user_id = user.get('id') if user else None
-        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
-            return {'error': 'You have read-only permission for this bucket'}, 403
 
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         configuration_title = request.args.get('configuration_title')

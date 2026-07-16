@@ -29,25 +29,14 @@ from ..s3.utils import parse_bucket_and_key
 from ..s3.handlers.bucket import BucketHandler
 from ..s3.handlers.object import ObjectHandler
 from ..s3.handlers.multipart import MultipartHandler
+from ..utils.utils import check_bucket_perm_from_dict
 
 
 def _check_bucket_perm(credential: dict, bucket: str, required: str) -> bool:
-    """Return True if the credential has the required permission for the bucket.
-
-    Empty bucket_permissions = no restrictions (unrestricted access).
-    required: 'read' or 'write'.
-    'read' is satisfied by any non-empty permission list for the bucket.
-    'write' requires 'write' explicitly present.
-    """
-    perms = credential.get('bucket_permissions', {})
-    if not perms:
-        return True
-    allowed = perms.get(bucket, [])
-    if not allowed:
-        return False
-    if required == 'read':
-        return True
-    return 'write' in allowed
+    """Return True if the credential has the required permission for the bucket."""
+    return check_bucket_perm_from_dict(
+        credential.get('bucket_permissions', {}), bucket, required
+    )
 
 
 class Route:  # pylint: disable=E1101,R0903

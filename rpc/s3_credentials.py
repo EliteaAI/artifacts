@@ -36,16 +36,31 @@ class RPC:
     def create(self, name: str, project_id: int, user_id: int,
                expires_at: Optional[datetime] = None,
                permissions: Optional[List[str]] = None,
-               bucket_permissions: Optional[Dict] = None) -> Optional[Dict]:
+               bucket_permissions: Optional[Dict] = None,
+               allow_multiple: bool = False) -> Optional[Dict]:
         """
         Create new S3 API credentials as a configuration item.
 
         Creates a configuration of type 's3_api_credentials' that will be
         visible in the Configurations UI.
 
+        Args:
+            allow_multiple: If False (default), returns existing active credential
+                           for this user instead of creating a duplicate.
+
         Returns the full credential including secret (only time secret is returned).
         """
         rpc = context.rpc_manager
+
+        # Check for existing active credential for this user (unless explicitly allowed)
+        if not allow_multiple:
+            existing = self.list_by_project(project_id)
+            for cred in existing:
+                if cred.get('user_id') == user_id and cred.get('is_active', True):
+                    log.info("Returning existing S3 credential for user %d in project %d", user_id, project_id)
+                    full_cred = self.get_by_access_key(cred['access_key_id'])
+                    if full_cred:
+                        return full_cred
 
         # Generate access key and secret
         access_key_id = generate_access_key_id(project_id)

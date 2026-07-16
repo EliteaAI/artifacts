@@ -5,7 +5,7 @@ from hurry.filesize import size
 from tools import MinioClient, api_tools, auth, register_openapi
 from pylon.core.tools import log
 
-from ...utils.utils import make_filepath, get_max_upload_bytes, check_bucket_permission
+from ...utils.utils import make_filepath, get_max_upload_bytes, require_bucket_write_permission
 
 
 def calculate_readable_retention_policy(days: int) -> dict:
@@ -114,13 +114,9 @@ class ProjectAPI(api_tools.APIModeHandler):
             "default": {"admin": True, "viewer": False, "editor": True},
             "developer": {"admin": True, "viewer": False, "editor": True},
         }})
+    @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def post(self, project_id: int, bucket: str):
         """Upload file and return filepath."""
-        user = auth.current_user()
-        user_id = user.get('id') if user else None
-        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
-            return {'error': 'You have read-only permission for this bucket'}, 403
-
         configuration_title = request.args.get('configuration_title')
 
         # Reject oversized uploads before request.files buffers the body into RAM.
@@ -193,6 +189,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             "default": {"admin": True, "viewer": False, "editor": True},
             "developer": {"admin": True, "viewer": False, "editor": True},
         }})
+    @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def delete(self, project_id: int, bucket: str):
         """
         Delete file(s) from bucket.
@@ -200,11 +197,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         Query params:
         - fname[]: filename(s) to delete
         """
-        user = auth.current_user()
-        user_id = user.get('id') if user else None
-        if user_id and not check_bucket_permission(project_id, user_id, bucket, 'write'):
-            return {'error': 'You have read-only permission for this bucket'}, 403
-
         args = request.args
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         configuration_title = args.get('configuration_title')
