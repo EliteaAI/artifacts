@@ -66,10 +66,10 @@ class ProjectAPI(api_tools.APIModeHandler):
         if access_key_id:
             # Get specific credential
             credential = rpc.call.s3_credentials_get_by_access_key(access_key_id=access_key_id)
-            if not credential:
-                return {'error': 'Credential not found'}, 404
-            if credential.get('project_id') != project_id:
-                return {'error': 'Credential not found'}, 404
+            if not credential or credential.get('project_id') != project_id:
+                return {
+                    'error': f"S3 credential with such access_key_id was not found"
+                }, 404
 
             # Remove secret from response
             public_credential = {k: v for k, v in credential.items()
