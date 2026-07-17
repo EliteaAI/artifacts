@@ -123,6 +123,12 @@ class ProjectAPI(api_tools.APIModeHandler):
 
         expiration_measure = args.get("expiration_measure")
         expiration_value = args.get("expiration_value")
+
+        # Set default to 1 year if no expiration provided
+        if expiration_value is None and expiration_measure is None:
+            expiration_value = 1
+            expiration_measure = "years"
+
         configuration_title = request.args.get('configuration_title')
 
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
