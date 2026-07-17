@@ -100,6 +100,13 @@ def check_bucket_perm_from_dict(bucket_permissions: dict, bucket: str, required:
     """
     Core permission check logic used by both REST API and S3 routes.
 
+    Blacklist logic:
+    - Empty dict {} = unrestricted access to all buckets
+    - Bucket not in dict = no restriction for this bucket (allowed)
+    - Bucket in dict with [] = explicitly blocked (no access)
+    - Bucket in dict with ['read'] = read-only
+    - Bucket in dict with ['read', 'write'] = full access
+
     Args:
         bucket_permissions: The bucket_permissions dict from a credential
         bucket: Bucket name to check
@@ -111,9 +118,14 @@ def check_bucket_perm_from_dict(bucket_permissions: dict, bucket: str, required:
     if not bucket_permissions:
         return True
 
-    allowed = bucket_permissions.get(bucket, [])
+    # Bucket not in dict = no restriction = allowed
+    if bucket not in bucket_permissions:
+        return True
+
+    # Bucket explicitly in dict - check permissions
+    allowed = bucket_permissions[bucket]
     if not allowed:
-        return False
+        return False  # Explicitly set to [] = blocked
 
     if required == 'read':
         return True

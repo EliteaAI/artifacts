@@ -52,7 +52,12 @@ class BucketHandler:
             buckets = self.mc.list_bucket()
 
             if self.bucket_permissions:
-                buckets = [b for b in buckets if b in self.bucket_permissions and self.bucket_permissions[b]]
+                # Blacklist logic: hide only buckets explicitly set to [] (no access)
+                # Buckets not in dict = no restriction = visible
+                buckets = [
+                    b for b in buckets
+                    if b not in self.bucket_permissions or self.bucket_permissions[b]
+                ]
 
             # Build bucket list with metadata
             bucket_list = []

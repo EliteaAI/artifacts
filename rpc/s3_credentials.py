@@ -285,6 +285,8 @@ class RPC:
         Used for Bearer token authentication where we need to map
         a user's Bearer token to S3 credentials for a specific project.
 
+        Prioritizes credentials with empty bucket_permissions (unrestricted access).
+
         Args:
             project_id: The project ID to get/create credentials for
             user_id: The user ID from the Bearer token
@@ -296,12 +298,22 @@ class RPC:
         try:
             credentials = self.list_by_project(project_id)
 
-            # Only return credentials belonging to this user
-            for cred in credentials:
-                if cred.get('user_id') == user_id and cred.get('is_active', True):
-                    full_cred = self.get_by_access_key(cred['access_key_id'])
-                    if full_cred:
-                        return full_cred
+            # Find credentials belonging to this user
+            user_creds = [
+                c for c in credentials
+                if c.get('user_id') == user_id and c.get('is_active', True)
+            ]
+
+            if user_creds:
+                # Prioritize credential with empty bucket_permissions (unrestricted)
+                unrestricted = next(
+                    (c for c in user_creds if not c.get('bucket_permissions')),
+                    None
+                )
+                selected = unrestricted or user_creds[0]
+                full_cred = self.get_by_access_key(selected['access_key_id'])
+                if full_cred:
+                    return full_cred
 
             # No credential found for this user - create new one
             new_cred = self.create(
