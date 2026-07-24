@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from tools import MinioClient, api_tools, auth, register_openapi
 
-from ...utils.utils import require_bucket_write_permission
+from ...utils.utils import require_bucket_write_permission, require_bucket_read_permission
 
 
 class ProjectAPI(api_tools.APIModeHandler):
@@ -30,6 +30,7 @@ class ProjectAPI(api_tools.APIModeHandler):
         available_to_users=True,
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.view"])
+    @require_bucket_read_permission(lambda req, **kw: kw.get('bucket'))
     def get(self, project_id: int, bucket: str, filename: str):
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         configuration_title = request.args.get('configuration_title')

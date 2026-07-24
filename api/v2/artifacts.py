@@ -5,7 +5,7 @@ from hurry.filesize import size
 from tools import MinioClient, api_tools, auth, register_openapi
 from pylon.core.tools import log
 
-from ...utils.utils import make_filepath, get_max_upload_bytes, require_bucket_write_permission
+from ...utils.utils import make_filepath, get_max_upload_bytes, require_bucket_write_permission, require_bucket_read_permission
 
 
 def calculate_readable_retention_policy(days: int) -> dict:
@@ -47,6 +47,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             "default": {"admin": True, "viewer": True, "editor": True},
             "developer": {"admin": True, "viewer": True, "editor": True},
         }})
+    @require_bucket_read_permission(lambda req, **kw: kw.get('bucket'))
     def get(self, project_id: int, bucket: str):
         """List files in bucket with filepath."""
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)

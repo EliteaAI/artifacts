@@ -206,4 +206,36 @@ def require_bucket_write_permission(get_bucket_from_request):
     return decorator
 
 
+def require_bucket_read_permission(get_bucket_from_request):
+    """
+    Decorator factory for bucket read permission checks on REST API endpoints.
+
+    Args:
+        get_bucket_from_request: Function that extracts bucket name from request context.
+                                 Signature: (request, **kwargs) -> str
+
+    Usage:
+        @require_bucket_read_permission(lambda req, **kw: kw.get('bucket'))
+        def get(self, project_id: int, bucket: str):
+            ...
+    """
+    from functools import wraps
+    from flask import request
+    from tools import auth
+
+    def decorator(f):
+        @wraps(f)
+        def wrapper(self, project_id: int, *args, **kwargs):
+            user = auth.current_user()
+            user_id = user.get('id') if user else None
+            bucket = get_bucket_from_request(request, **kwargs)
+
+            if user_id and bucket and not check_bucket_permission(project_id, user_id, bucket, 'read'):
+                return {'error': 'You do not have access to this bucket'}, 403
+
+            return f(self, project_id, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
 
