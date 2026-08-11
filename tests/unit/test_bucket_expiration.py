@@ -63,8 +63,10 @@ class _FakeTimeoutRpc:
     def __init__(self, projects, users_by_project):
         self._projects = projects
         self._users_by_project = users_by_project
+        self.project_list_calls = 0
 
     def project_list(self, filter_=None):  # pylint: disable=unused-argument
+        self.project_list_calls += 1
         return self._projects
 
     def admin_get_users_ids_in_project(self, project_id):
@@ -272,3 +274,42 @@ def test_fires_one_event_per_user_in_project(monkeypatch):
 
     user_ids = [payload["user_id"] for _, payload in rpc.context.event_manager.fired]
     assert sorted(user_ids) == [10, 11, 12]
+
+
+def test_caller_supplied_projects_skips_the_project_list_refetch(monkeypatch):
+    """Review fix: a batching caller sends one chunk per RPC call. Re-fetching the entire project
+    table on each call -- only to filter it back down to the chunk -- meant one full scan per
+    chunk. Given the caller's own project dicts we must not query at all."""
+    projects = [{"id": 1}, {"id": 2}]
+    users_by_project = {1: [10], 2: [20]}
+    buckets = {1: ["b1"], 2: ["b2"]}
+    lifecycles = {"b1": {"days": 30}, "b2": {"days": 30}}
+    tags = {"b1": _expiring_tomorrow_tags(), "b2": _expiring_tomorrow_tags()}
+
+    monkeypatch.setattr(
+        bucket_expiration, "MinioClient",
+        lambda p: _FakeMinioClient(p, buckets[p["id"]], lifecycles, {k: dict(v) for k, v in tags.items()}),
+    )
+
+    rpc = _make_rpc(projects, users_by_project)
+    rpc.check_bucket_expiration_notifications(
+        buckets_by_project={"1": ["b1"]}, projects=[{"id": 1}],
+    )
+
+    assert rpc.context.rpc_manager._rpc.project_list_calls == 0
+    assert _notified_pairs(rpc.context) == [(1, "b1")]   # chunk honoured, project 2 untouched
+
+
+def test_omitted_projects_still_fetches_the_project_list(monkeypatch):
+    """Unbatched callers keep the original behaviour."""
+    projects = [{"id": 1}]
+    monkeypatch.setattr(
+        bucket_expiration, "MinioClient",
+        lambda p: _FakeMinioClient(p, ["b1"], {"b1": {"days": 30}}, {"b1": _expiring_tomorrow_tags()}),
+    )
+
+    rpc = _make_rpc(projects, {1: [10]})
+    rpc.check_bucket_expiration_notifications()
+
+    assert rpc.context.rpc_manager._rpc.project_list_calls == 1
+    assert _notified_pairs(rpc.context) == [(1, "b1")]
