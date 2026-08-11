@@ -17,9 +17,10 @@ def _update_bucket_tags(mc, bucket, new_tags):
 
 class RPC:
     @web.rpc('artifacts_check_bucket_expiration_notifications')
-    def check_bucket_expiration_notifications(self, buckets_by_project=None):
+    def check_bucket_expiration_notifications(self, buckets_by_project=None, project_ids=None):
         """`buckets_by_project` (str project_id -> [bucket, ...]) lets the caller share one
-        precomputed global walk; when omitted each project falls back to its own mc.list_bucket()."""
+        precomputed global walk; when omitted each project falls back to its own mc.list_bucket().
+        `project_ids` restricts this call to one chunk of projects when the caller batches."""
         try:
             project_list = self.context.rpc_manager.timeout(30).project_list(
                 filter_={'create_success': True}
@@ -27,6 +28,10 @@ class RPC:
         except Exception as e:
             log.warning('Failed to get project list for bucket expiration check: %s', e)
             return
+
+        if project_ids is not None:
+            wanted = set(str(pid) for pid in project_ids)
+            project_list = [p for p in project_list if str(p['id']) in wanted]
 
         today = date.today()
 
