@@ -2,7 +2,7 @@ from datetime import date
 
 from pylon.core.tools import web, log
 
-from tools import MinioClient
+from tools import MinioClient, lifecycle_from_meta
 
 
 def _update_bucket_tags(mc, bucket, new_tags):
@@ -17,14 +17,21 @@ def _update_bucket_tags(mc, bucket, new_tags):
 
 class RPC:
     @web.rpc('artifacts_check_bucket_expiration_notifications')
-    def check_bucket_expiration_notifications(self):
-        try:
-            project_list = self.context.rpc_manager.timeout(30).project_list(
-                filter_={'create_success': True}
-            )
-        except Exception as e:
-            log.warning('Failed to get project list for bucket expiration check: %s', e)
-            return
+    def check_bucket_expiration_notifications(self, buckets_by_project=None, projects=None):
+        """`buckets_by_project` (str project_id -> [bucket, ...]) lets the caller share one
+        precomputed global walk; when omitted each project falls back to its own mc.list_bucket().
+        `projects` is the caller's own already-fetched chunk of project dicts -- batching callers
+        pass it so each chunk doesn't re-fetch the whole project table just to discard most of it."""
+        if projects is not None:
+            project_list = projects
+        else:
+            try:
+                project_list = self.context.rpc_manager.timeout(30).project_list(
+                    filter_={'create_success': True}
+                )
+            except Exception as e:
+                log.warning('Failed to get project list for bucket expiration check: %s', e)
+                return
 
         today = date.today()
 
@@ -32,14 +39,27 @@ class RPC:
             project_id = project['id']
             try:
                 mc = MinioClient(project)
-                buckets = mc.list_bucket()
+                if buckets_by_project is not None:
+                    buckets = buckets_by_project.get(str(project_id), [])
+                else:
+                    buckets = mc.list_bucket()
             except Exception as e:
                 log.warning('Failed to access MinIO for project %s: %s', project_id, e)
                 continue
 
+            try:
+                metas = mc.load_metas(buckets) if hasattr(mc, 'load_metas') else None
+            except Exception as e:
+                log.warning('Failed to batch-load bucket meta for project %s: %s', project_id, e)
+                metas = None
+
             for bucket in buckets:
                 try:
-                    lifecycle = mc.get_bucket_lifecycle(bucket)
+                    meta = metas.get(bucket) if metas is not None else None
+                    if meta is not None:
+                        lifecycle = lifecycle_from_meta(meta)
+                    else:
+                        lifecycle = mc.get_bucket_lifecycle(bucket)
                     rules = lifecycle.get('Rules', [])
                     if not rules:
                         continue
@@ -48,11 +68,14 @@ class RPC:
                     if not total_days:
                         continue
 
-                    tag_response = mc.get_bucket_tags(bucket)
-                    tags = {
-                        tag['Key']: tag['Value']
-                        for tag in tag_response.get('TagSet', [])
-                    } if tag_response else {}
+                    if meta is not None:
+                        tags = meta.get('tags', {})
+                    else:
+                        tag_response = mc.get_bucket_tags(bucket)
+                        tags = {
+                            tag['Key']: tag['Value']
+                            for tag in tag_response.get('TagSet', [])
+                        } if tag_response else {}
 
                     expiration_date_str = tags.get('expiration_date')
                     if not expiration_date_str:
