@@ -49,6 +49,56 @@ class ProjectAPI(api_tools.APIModeHandler):
             return send_file(BytesIO(file), download_name=filename, as_attachment=False)
 
     @register_openapi(
+        name="Rename Artifact",
+        description="Rename a file in a project bucket.",
+        parameters=[
+            {"name": "project_id", "in": "path", "schema": {"type": "integer"},
+             "description": "Project identifier."},
+            {"name": "bucket", "in": "path", "schema": {"type": "string"},
+             "description": "Bucket name."},
+            {"name": "old_name", "in": "query", "schema": {"type": "string"},
+             "required": True,
+             "description": "Current filename (URL-encoded)."},
+            {"name": "new_name", "in": "query", "schema": {"type": "string"},
+             "required": True,
+             "description": "New filename (URL-encoded)."},
+            {"name": "configuration_title", "in": "query", "schema": {"type": "string"},
+             "description": "Optional S3 configuration title override."},
+        ],
+        available_to_users=True,
+    )
+    @auth.decorators.check_api(["configuration.artifacts.artifacts.edit"])
+    @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
+    def put(self, project_id: int, bucket: str):
+        old_name: str = request.args.get('old_name')
+        new_name: str = request.args.get('new_name')
+        if not old_name or not new_name:
+            return {'error': 'old_name and new_name query parameters are required'}, 400
+        decoded_old_name: str = urllib.parse.unquote(old_name)
+        decoded_new_name: str = urllib.parse.unquote(new_name)
+
+        if decoded_old_name == decoded_new_name:
+            return {'error': 'old_name and new_name must be different'}, 400
+
+        project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
+        configuration_title = request.args.get('configuration_title')
+        try:
+            mc = MinioClient(project, configuration_title=configuration_title)
+        except AttributeError:
+            return {'error': f'Error accessing s3: {configuration_title}'}, 400
+
+        try:
+            mc.rename_file(bucket, decoded_old_name, decoded_new_name)
+        except ClientError as e:
+            log.error('Error renaming file %s to %s: %s', decoded_old_name, decoded_new_name, e)
+            return {'error': 'Failed to rename file'}, 400
+        except Exception as e:
+            log.error('Unexpected error renaming file %s to %s: %s', decoded_old_name, decoded_new_name, e)
+            return {'error': f'Failed to rename file: {str(e)}'}, 500
+
+        return {"message": "Renamed", "old_name": decoded_old_name, "new_name": decoded_new_name}, 200
+
+    @register_openapi(
         name="Delete Artifact",
         description="Delete a specific file from a project bucket.",
         parameters=[
