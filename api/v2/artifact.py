@@ -87,11 +87,27 @@ class ProjectAPI(api_tools.APIModeHandler):
         except AttributeError:
             return {'error': f'Error accessing s3: {configuration_title}'}, 400
 
+        # Pre-flight checks to provide clear error messages
+        if not mc.is_file_exist(bucket, decoded_old_name):
+            return {'error': f'Source file not found: {decoded_old_name}'}, 404
+
+        if mc.is_file_exist(bucket, decoded_new_name):
+            return {'error': f'Destination file already exists: {decoded_new_name}'}, 409
+
         try:
             mc.rename_file(bucket, decoded_old_name, decoded_new_name)
+        except FileNotFoundError as e:
+            log.error('Source file not found when renaming %s to %s: %s', decoded_old_name, decoded_new_name, e)
+            return {'error': f'Source file not found: {decoded_old_name}'}, 404
+        except FileExistsError as e:
+            log.error('Destination file exists when renaming %s to %s: %s', decoded_old_name, decoded_new_name, e)
+            return {'error': f'Destination file already exists: {decoded_new_name}'}, 409
         except ClientError as e:
             log.error('Error renaming file %s to %s: %s', decoded_old_name, decoded_new_name, e)
             return {'error': 'Failed to rename file'}, 400
+        except ValueError as e:
+            log.error('Validation error renaming file %s to %s: %s', decoded_old_name, decoded_new_name, e)
+            return {'error': str(e)}, 400
         except Exception as e:
             log.error('Unexpected error renaming file %s to %s: %s', decoded_old_name, decoded_new_name, e)
             return {'error': f'Failed to rename file: {str(e)}'}, 500
