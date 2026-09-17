@@ -48,6 +48,13 @@ class ProjectAPI(api_tools.APIModeHandler):
         except TypeError:  # new flask
             return send_file(BytesIO(file), download_name=filename, as_attachment=False)
 
+    @staticmethod
+    def _validate_filename(name: str, param_name: str) -> tuple:
+        """Validate filename and reject path traversal attempts. Returns (error_dict, status_code) or None."""
+        if ".." in name or name.startswith("/") or "\\" in name:
+            return {'error': f'Invalid {param_name}: path traversal not allowed'}, 400
+        return None
+
     @register_openapi(
         name="Rename Artifact",
         description="Rename a file in a project bucket.",
@@ -76,6 +83,12 @@ class ProjectAPI(api_tools.APIModeHandler):
             return {'error': 'old_name and new_name query parameters are required'}, 400
         decoded_old_name: str = urllib.parse.unquote(old_name)
         decoded_new_name: str = urllib.parse.unquote(new_name)
+
+        # Validate filenames to prevent path traversal
+        if error := self._validate_filename(decoded_old_name, 'old_name'):
+            return error
+        if error := self._validate_filename(decoded_new_name, 'new_name'):
+            return error
 
         if decoded_old_name == decoded_new_name:
             return {'error': 'old_name and new_name must be different'}, 400
