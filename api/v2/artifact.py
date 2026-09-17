@@ -7,6 +7,7 @@ from pylon.core.tools import log
 from botocore.exceptions import ClientError
 
 from tools import MinioClient, api_tools, auth, register_openapi
+from plugins.shared.tools.storage_engines import validate_file_name
 
 from ...utils.utils import require_bucket_write_permission, require_bucket_read_permission
 
@@ -50,10 +51,12 @@ class ProjectAPI(api_tools.APIModeHandler):
 
     @staticmethod
     def _validate_filename(name: str, param_name: str) -> tuple:
-        """Validate filename and reject path traversal attempts. Returns (error_dict, status_code) or None."""
-        if ".." in name or name.startswith("/") or "\\" in name:
-            return {'error': f'Invalid {param_name}: path traversal not allowed'}, 400
-        return None
+        """Validate filename using shared helper. Returns (error_dict, status_code) or None."""
+        try:
+            validate_file_name(name, param_name)
+            return None
+        except ValueError as e:
+            return {'error': str(e)}, 400
 
     @register_openapi(
         name="Rename Artifact",
