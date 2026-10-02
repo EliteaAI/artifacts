@@ -206,7 +206,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }})
     @require_bucket_write_permission(lambda req, **kw: (req.json or {}).get('name', '').replace('_', '').replace(' ', '').lower())
     def put(self, project_id: int):
@@ -313,7 +312,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }})
     @require_bucket_write_permission(lambda req, **kw: req.args.get('name'))
     def patch(self, project_id: int):
