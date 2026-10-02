@@ -51,7 +51,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": True, "editor": True},
             "default": {"admin": True, "viewer": True, "editor": True},
-            "developer": {"admin": True, "viewer": True, "editor": True},
         }
     })
     def get(self, project_id: int, access_key_id: str = None):
@@ -97,7 +96,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }
     })
     def post(self, project_id: int):
@@ -163,7 +161,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }
     })
     def delete(self, project_id: int, access_key_id: str = None):
@@ -200,7 +197,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }
     })
     def put(self, project_id: int, access_key_id: str = None):

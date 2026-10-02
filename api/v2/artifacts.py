@@ -45,7 +45,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": True, "editor": True},
             "default": {"admin": True, "viewer": True, "editor": True},
-            "developer": {"admin": True, "viewer": True, "editor": True},
         }})
     @require_bucket_read_permission(lambda req, **kw: kw.get('bucket'))
     def get(self, project_id: int, bucket: str):
@@ -113,7 +112,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }})
     @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def post(self, project_id: int, bucket: str):
@@ -188,7 +186,6 @@ class ProjectAPI(api_tools.APIModeHandler):
         "recommended_roles": {
             "administration": {"admin": True, "viewer": False, "editor": True},
             "default": {"admin": True, "viewer": False, "editor": True},
-            "developer": {"admin": True, "viewer": False, "editor": True},
         }})
     @require_bucket_write_permission(lambda req, **kw: kw.get('bucket'))
     def delete(self, project_id: int, bucket: str):
