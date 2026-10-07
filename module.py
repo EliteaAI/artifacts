@@ -84,6 +84,10 @@ class Module(module.ModuleModel):
             this.for_module("admin").module.register_admin_task(
                 "migration_rename_wiki_bucket", self.migration_rename_wiki_bucket
             )
+            this.for_module("admin").module.register_admin_task(
+                "migration_cleanup_bearer_s3_credentials", self.migration_cleanup_bearer_s3_credentials,
+                group="R-2.0.7",
+            )
         except Exception as e:
             log.exception("Failed to register admin tasks: %s", e)
 
