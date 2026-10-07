@@ -278,7 +278,8 @@ class RPC:
 
     @web.rpc('s3_credentials_get_or_create_for_bearer', 'get_or_create_for_bearer')
     def get_or_create_for_bearer(self, project_id: int, user_id: int,
-                                  user_name: str = 'Bearer User') -> Optional[Dict]:
+                                  user_name: str = 'Bearer User',
+                                  create: bool = True) -> Optional[Dict]:
         """
         Get existing S3 credentials for a project or create new ones.
 
@@ -291,6 +292,8 @@ class RPC:
             project_id: The project ID to get/create credentials for
             user_id: The user ID from the Bearer token
             user_name: Display name for the credential
+            create: If False, no credential is persisted when none exists;
+                    an ephemeral unrestricted credential is returned instead
 
         Returns:
             Credential dict (without secret for existing, with secret for new)
@@ -314,6 +317,17 @@ class RPC:
                 full_cred = self.get_by_access_key(selected['access_key_id'])
                 if full_cred:
                     return full_cred
+
+            if not create:
+                return {
+                    'access_key_id': 'bearer-auth',
+                    'name': f'Bearer - {user_name}',
+                    'project_id': project_id,
+                    'user_id': user_id,
+                    'permissions': ['read', 'write'],
+                    'bucket_permissions': {},
+                    'is_active': True
+                }
 
             # No credential found for this user - create new one
             new_cred = self.create(

@@ -428,7 +428,8 @@ def authenticate_bearer_request() -> Tuple[Optional[S3AuthContext], Optional[str
             cred_data = rpc.timeout(5).s3_credentials_get_or_create_for_bearer(
                 project_id=project_id,
                 user_id=user_id,
-                user_name=user_name
+                user_name=user_name,
+                create=False
             )
             if not cred_data:
                 return None, "Failed to get S3 credentials for project"
@@ -591,7 +592,8 @@ def verify_bearer_auth(flask_request) -> dict:
             credentials = rpc.timeout(5).s3_credentials_get_or_create_for_bearer(
                 project_id=project_id,
                 user_id=user_id,
-                user_name=user.get('name', user.get('email', 'Bearer User'))
+                user_name=user.get('name', user.get('email', 'Bearer User')),
+                create=False
             )
             if not credentials:
                 return {'error': 'Failed to get S3 credentials for project'}
