@@ -93,6 +93,12 @@ class ProjectAPI(api_tools.APIModeHandler):
         if error := self._validate_filename(decoded_new_name, 'new_name'):
             return error
 
+        # Rename keeps the file in its folder: only the base name may change
+        old_folder, _, _ = decoded_old_name.rpartition('/')
+        new_folder, _, new_base_name = decoded_new_name.rpartition('/')
+        if new_folder != old_folder or not new_base_name:
+            return {'error': 'File name cannot contain slashes'}, 400
+
         if decoded_old_name == decoded_new_name:
             return {'error': 'old_name and new_name must be different'}, 400
 
