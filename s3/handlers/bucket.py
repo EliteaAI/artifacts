@@ -29,6 +29,7 @@ from ..responses import (
     head_response,
     error_response
 )
+from ...utils.utils import check_bucket_perm_from_dict
 
 
 class BucketHandler:
@@ -64,7 +65,10 @@ class BucketHandler:
             for bucket_name in buckets:
                 bucket_info = {
                     'name': bucket_name,
-                    'creation_date': datetime.utcnow()  # MinIO doesn't track creation date
+                    'creation_date': datetime.utcnow(),  # MinIO doesn't track creation date
+                    'permissions': ['read', 'write'] if check_bucket_perm_from_dict(
+                        self.bucket_permissions, bucket_name, 'write'
+                    ) else ['read'],
                 }
 
                 # Get bucket size
