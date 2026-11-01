@@ -29,7 +29,7 @@ from ..responses import (
     head_response,
     error_response
 )
-from ...utils.utils import check_bucket_perm_from_dict, is_platform_managed_bucket
+from ...utils.utils import check_bucket_perm_from_dict, extract_project_id, is_platform_managed_bucket
 
 
 class BucketHandler:
@@ -52,7 +52,7 @@ class BucketHandler:
         try:
             buckets = [
                 bucket for bucket in self.mc.list_bucket()
-                if not is_platform_managed_bucket(self.project['id'], bucket)
+                if not is_platform_managed_bucket(extract_project_id(self.project), bucket)
             ]
 
             if self.bucket_permissions:

@@ -196,7 +196,7 @@ def test_the_s3_bucket_list_hides_the_skill_files_bucket(artifacts, monkeypatch)
     listed = []
     monkeypatch.setattr(bucket_module, 'list_buckets_response', lambda buckets, **kw: listed.extend(buckets))
 
-    bucket_module.BucketHandler({'id': 2}).list_buckets()
+    bucket_module.BucketHandler(types.SimpleNamespace(id=2)).list_buckets()
 
     assert [bucket['name'] for bucket in listed] == ['reports']
 
