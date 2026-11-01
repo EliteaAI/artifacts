@@ -29,7 +29,7 @@ from ..responses import (
     head_response,
     error_response
 )
-from ...utils.utils import check_bucket_perm_from_dict
+from ...utils.utils import check_bucket_perm_from_dict, is_platform_managed_bucket
 
 
 class BucketHandler:
@@ -50,7 +50,10 @@ class BucketHandler:
         S3 Operation: GET /
         """
         try:
-            buckets = self.mc.list_bucket()
+            buckets = [
+                bucket for bucket in self.mc.list_bucket()
+                if not is_platform_managed_bucket(self.project['id'], bucket)
+            ]
 
             if self.bucket_permissions:
                 # Blacklist logic: hide only buckets explicitly set to [] (no access)

@@ -25,6 +25,9 @@ DEFAULT_MAX_FILE_UPLOAD_SIZE_MB = 150
 # Valid bucket permission values
 VALID_BUCKET_PERMISSIONS = {'read', 'write'}
 
+PLATFORM_MANAGED_BUCKETS = frozenset({'skill-files'})
+PLATFORM_MANAGED_BUCKET_ERROR = 'This bucket is managed by the platform'
+
 
 def extract_project_id(project):
     """
@@ -174,6 +177,11 @@ def check_bucket_permission(project_id: int, user_id: int, bucket: str, required
         return False
 
 
+def is_platform_managed_bucket(project_id: int, bucket: str) -> bool:
+    """Whether the bucket belongs to the platform, so the artifacts surface must neither expose nor change it."""
+    return (bucket or '').removeprefix(f'p--{project_id}.') in PLATFORM_MANAGED_BUCKETS
+
+
 def require_bucket_write_permission(get_bucket_from_request):
     """
     Decorator factory for bucket write permission checks on REST API endpoints.
@@ -198,6 +206,8 @@ def require_bucket_write_permission(get_bucket_from_request):
             user_id = user.get('id') if user else None
             bucket = get_bucket_from_request(request, **kwargs)
 
+            if is_platform_managed_bucket(project_id, bucket):
+                return {'error': PLATFORM_MANAGED_BUCKET_ERROR}, 403
             if user_id and bucket and not check_bucket_permission(project_id, user_id, bucket, 'write'):
                 return {'error': 'You have read-only permission for this bucket'}, 403
 
@@ -230,6 +240,8 @@ def require_bucket_read_permission(get_bucket_from_request):
             user_id = user.get('id') if user else None
             bucket = get_bucket_from_request(request, **kwargs)
 
+            if is_platform_managed_bucket(project_id, bucket):
+                return {'error': PLATFORM_MANAGED_BUCKET_ERROR}, 403
             if user_id and bucket and not check_bucket_permission(project_id, user_id, bucket, 'read'):
                 return {'error': 'You do not have access to this bucket'}, 403
 

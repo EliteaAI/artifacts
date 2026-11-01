@@ -29,12 +29,12 @@ from ..s3.utils import parse_bucket_and_key
 from ..s3.handlers.bucket import BucketHandler
 from ..s3.handlers.object import ObjectHandler
 from ..s3.handlers.multipart import MultipartHandler
-from ..utils.utils import check_bucket_perm_from_dict
+from ..utils.utils import check_bucket_perm_from_dict, is_platform_managed_bucket
 
 
 def _check_bucket_perm(credential: dict, bucket: str, required: str) -> bool:
     """Return True if the credential has the required permission for the bucket."""
-    return check_bucket_perm_from_dict(
+    return not is_platform_managed_bucket(credential['project_id'], bucket) and check_bucket_perm_from_dict(
         credential.get('bucket_permissions', {}), bucket, required
     )
 
@@ -211,6 +211,9 @@ class Route:  # pylint: disable=E1101,R0903
                 # Check for copy operation
                 copy_source = flask.request.headers.get('x-amz-copy-source')
                 if copy_source:
+                    if is_platform_managed_bucket(project_id, copy_source.lstrip('/').split('/', 1)[0]):
+                        return responses.error_response(
+                            'AccessDenied', 'Access denied to source bucket', status_code=403)
                     return obj_handler.copy_object(bucket, key, copy_source)
                 return obj_handler.put_object(bucket, key)
             elif method == 'DELETE':

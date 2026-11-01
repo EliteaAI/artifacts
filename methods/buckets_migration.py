@@ -3,6 +3,8 @@ from pylon.core.tools import web
 
 from tools import MinioClient
 
+from ..utils.utils import is_platform_managed_bucket
+
 
 class Method:
     """
@@ -43,6 +45,9 @@ class Method:
                     buckets = mc.list_bucket()
 
                     for bucket in buckets:
+                        if is_platform_managed_bucket(project_id, bucket):
+                            results["buckets_skipped"] += 1
+                            continue
                         try:
                             lifecycle = mc.get_bucket_lifecycle(bucket)
 
