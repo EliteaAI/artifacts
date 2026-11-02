@@ -103,14 +103,14 @@ def artifacts(monkeypatch):
     monkeypatch.setitem(sys.modules, 'hurry.filesize', types.SimpleNamespace(size=str))
     for name, path in (('', ''), ('.utils', 'utils'), ('.methods', 'methods'), ('.api', 'api'),
                        ('.api.v2', 'api/v2'), ('.models', 'models'), ('.models.pd', 'models/pd'),
-                       ('.s3', 's3'), ('.s3.handlers', 's3/handlers'), ('.routes', 'routes')):
+                       ('.s3', 's3'), ('.s3.handlers', 's3/handlers'), ('.routes', 'routes'), ('.rpc', 'rpc')):
         _package(monkeypatch, PKG + name, ARTIFACTS_ROOT / path)
     monkeypatch.setitem(sys.modules, f'{PKG}.models.pd.api_models', types.SimpleNamespace(
         BucketCreateRequest=object, BucketUpdateRequest=object, BucketPatchRequest=object,
     ))
     modules = {}
     for name in ('utils.utils', 'methods.buckets_migration', 'api.v2.buckets', 's3.handlers.bucket',
-                 's3.handlers.object', 'routes.s3'):
+                 's3.handlers.object', 'routes.s3', 'rpc.artifacts'):
         monkeypatch.delitem(sys.modules, f'{PKG}.{name}', raising=False)
         modules[name] = importlib.import_module(f'{PKG}.{name}')
         monkeypatch.setitem(sys.modules, f'{PKG}.{name}', modules[name])
@@ -274,3 +274,49 @@ def test_the_s3_gateway_refuses_to_move_into_or_out_of_the_skill_files_bucket(s3
     assert s3_route.s3_move_objects('skill-files', 'abc123', 'reports', 'x')[2] == 403
     assert s3_route.s3_move_objects('reports', 'x', 'skill-files', 'abc123')[2] == 403
     assert s3_route.served == []
+
+
+@pytest.fixture
+def artifacts_rpc(artifacts, monkeypatch):
+    rpc_module = artifacts['rpc.artifacts']
+    monkeypatch.setattr(rpc_module, 'get_max_upload_bytes', lambda project_id: 1024)
+    monkeypatch.setattr(rpc_module.api_tools, 'upload_file_base', lambda **kwargs: UPLOADS.append(kwargs),
+                        raising=False)
+    monkeypatch.setattr(FakeMinioClient, 'list_files', lambda self, bucket: [], raising=False)
+    monkeypatch.setattr(FakeMinioClient, 'get_file_size', lambda self, bucket, filename: 6, raising=False)
+    UPLOADS.clear()
+    rpc = rpc_module.RPC()
+    rpc.context = _rpc({'id': 2}).context
+    rpc.context.rpc_manager.timeout = lambda seconds: rpc.context.rpc_manager.call
+    return rpc
+
+
+UPLOADS = []
+
+
+@pytest.mark.parametrize('bucket', ['skill-files', 'p--2.skill-files'])
+def test_the_upload_rpc_neither_creates_nor_writes_the_skill_files_bucket(artifacts_rpc, bucket):
+    with pytest.raises(RuntimeError, match='managed by the platform'):
+        artifacts_rpc.upload_artifact(2, bucket, 'x.md', b'object', bucket_retention_days=30)
+
+    assert INSTANCES == [] and UPLOADS == []
+
+
+def test_the_upload_rpc_still_creates_and_writes_other_buckets(artifacts_rpc):
+    artifacts_rpc.upload_artifact(2, 'notes', 'x.md', b'object', bucket_retention_days=30)
+
+    assert INSTANCES[0].created == ['notes'] and [upload['bucket'] for upload in UPLOADS] == ['notes']
+
+
+@pytest.mark.parametrize('location', [
+    {'filepath': '/skill-files/abc123'}, {'filepath': '/p--2.skill-files/abc123'},
+    {'bucket': 'skill-files', 'filename': 'abc123'},
+])
+def test_the_file_data_rpc_reads_nothing_from_the_skill_files_bucket(artifacts_rpc, location):
+    assert artifacts_rpc.get_file_data(2, **location) is None
+    assert INSTANCES == []
+
+
+def test_the_file_data_rpc_still_reads_other_buckets(artifacts_rpc):
+    assert artifacts_rpc.get_file_data(2, filepath='/reports/abc123')['file_data'] == b'object'
+    assert INSTANCES[0].read == [('reports', 'abc123')]

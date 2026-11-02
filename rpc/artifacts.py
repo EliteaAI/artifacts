@@ -20,7 +20,9 @@ from hurry.filesize import size
 from tools import MinioClient, api_tools
 from pylon.core.tools import log, web
 
-from ..utils.utils import parse_filepath, make_filepath, get_max_upload_bytes
+from ..utils.utils import (
+    PLATFORM_MANAGED_BUCKET_ERROR, get_max_upload_bytes, is_platform_managed_bucket, make_filepath, parse_filepath,
+)
 
 
 class RPC:
@@ -55,6 +57,9 @@ class RPC:
             
             if not bucket or not filename:
                 log.warning("Either filepath or bucket+filename must be provided")
+                return None
+            if is_platform_managed_bucket(project_id, bucket):
+                log.warning(f"{PLATFORM_MANAGED_BUCKET_ERROR}: {bucket}")
                 return None
 
             project = self.context.rpc_manager.timeout(3).project_get_or_404(project_id=project_id)
@@ -117,6 +122,8 @@ class RPC:
         NOTE: Do not use across different pylons
         """
         try:
+            if is_platform_managed_bucket(project_id, bucket):
+                raise RuntimeError(f"{PLATFORM_MANAGED_BUCKET_ERROR}: {bucket}")
             # Backstop for callers that bypass the HTTP size checks (internal RPC).
             max_bytes = get_max_upload_bytes(project_id)
             if file_data is not None and len(file_data) > max_bytes:
