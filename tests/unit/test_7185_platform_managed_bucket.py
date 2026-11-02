@@ -31,6 +31,8 @@ class FakeMinioClient:
         self.lifecycles = {}
         self.removed = []
         self.created = []
+        self.read = []
+        self.written = []
         INSTANCES.append(self)
 
     def list_bucket(self):
@@ -57,6 +59,13 @@ class FakeMinioClient:
     def create_bucket(self, bucket, bucket_type=None, retention_days=None):
         self.created.append(bucket)
         return {'Location': bucket}
+
+    def download_file(self, bucket, file_name):
+        self.read.append((bucket, file_name))
+        return b'object'
+
+    def upload_file(self, bucket, data, file_name):
+        self.written.append((bucket, file_name))
 
 
 INSTANCES = []
@@ -100,7 +109,8 @@ def artifacts(monkeypatch):
         BucketCreateRequest=object, BucketUpdateRequest=object, BucketPatchRequest=object,
     ))
     modules = {}
-    for name in ('utils.utils', 'methods.buckets_migration', 'api.v2.buckets', 's3.handlers.bucket', 'routes.s3'):
+    for name in ('utils.utils', 'methods.buckets_migration', 'api.v2.buckets', 's3.handlers.bucket',
+                 's3.handlers.object', 'routes.s3'):
         monkeypatch.delitem(sys.modules, f'{PKG}.{name}', raising=False)
         modules[name] = importlib.import_module(f'{PKG}.{name}')
         monkeypatch.setitem(sys.modules, f'{PKG}.{name}', modules[name])
@@ -241,17 +251,23 @@ def test_the_s3_gateway_refuses_the_skill_files_bucket(artifacts, s3_route, meth
     assert len(s3_route.served) == 1
 
 
-def test_the_s3_gateway_refuses_to_copy_out_of_the_skill_files_bucket(artifacts, s3_route):
+@pytest.mark.parametrize('copy_source', ['/skill-files/abc123', 'p--2.skill-files/abc123'])
+def test_the_s3_gateway_refuses_to_copy_out_of_the_skill_files_bucket(artifacts, s3_route, monkeypatch, copy_source):
+    object_module = artifacts['s3.handlers.object']
+    monkeypatch.setattr(object_module, 'error_response',
+                        lambda code, message, status_code, resource=None: (code, message, status_code))
+    monkeypatch.setattr(object_module, 'copy_object_response', lambda **kwargs: 'copied')
+    monkeypatch.setattr(artifacts['routes.s3'], 'ObjectHandler', object_module.ObjectHandler)
     artifacts['request'].method = 'PUT'
-    artifacts['request'].headers = {'x-amz-copy-source': '/skill-files/abc123'}
+    artifacts['request'].headers = {'x-amz-copy-source': copy_source}
 
     assert s3_route.s3_object_operations('reports', 'copy') == (
         'AccessDenied', 'Access denied to source bucket', 403)
-    assert s3_route.served == []
+    assert INSTANCES[-1].read == [] and INSTANCES[-1].written == []
 
     artifacts['request'].headers = {'x-amz-copy-source': '/reports/abc123'}
-    s3_route.s3_object_operations('reports', 'copy')
-    assert s3_route.served == [('copy_object', ('reports', 'copy', '/reports/abc123'))]
+    assert s3_route.s3_object_operations('reports', 'copy') == 'copied'
+    assert INSTANCES[-1].read == [('reports', 'abc123')] and INSTANCES[-1].written == [('reports', 'copy')]
 
 
 def test_the_s3_gateway_refuses_to_move_into_or_out_of_the_skill_files_bucket(s3_route):

@@ -33,7 +33,7 @@ from ..responses import (
     copy_object_response,
     error_response
 )
-from ...utils.utils import get_max_upload_bytes, extract_project_id
+from ...utils.utils import get_max_upload_bytes, extract_project_id, is_platform_managed_bucket
 
 
 class ObjectHandler:
@@ -389,6 +389,12 @@ class ObjectHandler:
                 )
 
             source_bucket, source_key = parts
+            if is_platform_managed_bucket(extract_project_id(self.project), source_bucket):
+                return error_response(
+                    code='AccessDenied',
+                    message='Access denied to source bucket',
+                    status_code=403
+                )
 
             # Check source bucket exists
             existing_buckets = self.mc.list_bucket()

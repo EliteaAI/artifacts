@@ -211,9 +211,6 @@ class Route:  # pylint: disable=E1101,R0903
                 # Check for copy operation
                 copy_source = flask.request.headers.get('x-amz-copy-source')
                 if copy_source:
-                    if is_platform_managed_bucket(project_id, copy_source.lstrip('/').split('/', 1)[0]):
-                        return responses.error_response(
-                            'AccessDenied', 'Access denied to source bucket', status_code=403)
                     return obj_handler.copy_object(bucket, key, copy_source)
                 return obj_handler.put_object(bucket, key)
             elif method == 'DELETE':
