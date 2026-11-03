@@ -29,12 +29,12 @@ from ..s3.utils import parse_bucket_and_key
 from ..s3.handlers.bucket import BucketHandler
 from ..s3.handlers.object import ObjectHandler
 from ..s3.handlers.multipart import MultipartHandler
-from ..utils.utils import check_bucket_perm_from_dict
+from ..utils.utils import check_bucket_perm_from_dict, is_platform_managed_bucket
 
 
 def _check_bucket_perm(credential: dict, bucket: str, required: str) -> bool:
     """Return True if the credential has the required permission for the bucket."""
-    return check_bucket_perm_from_dict(
+    return not is_platform_managed_bucket(credential['project_id'], bucket) and check_bucket_perm_from_dict(
         credential.get('bucket_permissions', {}), bucket, required
     )
 

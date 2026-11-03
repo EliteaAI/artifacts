@@ -11,7 +11,9 @@ from pylon.core.tools import log
 from tools import MinioClient, api_tools, auth, register_openapi
 
 from ...models.pd.api_models import BucketCreateRequest, BucketUpdateRequest, BucketPatchRequest
-from ...utils.utils import require_bucket_write_permission
+from ...utils.utils import (
+    PLATFORM_MANAGED_BUCKET_ERROR, is_platform_managed_bucket, require_bucket_write_permission,
+)
 
 
 def _update_bucket_tags(mc, bucket, new_tags):
@@ -59,7 +61,7 @@ class ProjectAPI(api_tools.APIModeHandler):
             mc = MinioClient(project, configuration_title=configuration_title)
         except AttributeError:
             return {'error': f'Error accessing s3: {configuration_title}'}, 400
-        buckets = mc.list_bucket()
+        buckets = [bucket for bucket in mc.list_bucket() if not is_platform_managed_bucket(project_id, bucket)]
 
         # Apply bucket-level access filter for non-admin users
         current_user = auth.current_user()
@@ -120,6 +122,8 @@ class ProjectAPI(api_tools.APIModeHandler):
                 "message": "Invalid bucket name. Bucket name must start with a "
                 "letter and contain only letters, numbers, and hyphens."
             }, 400
+        if is_platform_managed_bucket(project_id, bucket):
+            return {'error': PLATFORM_MANAGED_BUCKET_ERROR}, 403
 
         expiration_measure = args.get("expiration_measure")
         expiration_value = args.get("expiration_value")
@@ -282,6 +286,8 @@ class ProjectAPI(api_tools.APIModeHandler):
     )
     @auth.decorators.check_api(["configuration.artifacts.artifacts.delete"])
     def delete(self, project_id: int):
+        if is_platform_managed_bucket(project_id, request.args.get('name')):
+            return {'error': PLATFORM_MANAGED_BUCKET_ERROR}, 403
         configuration_title = request.args.get('configuration_title')
         project = self.module.context.rpc_manager.call.project_get_or_404(project_id=project_id)
         try:
